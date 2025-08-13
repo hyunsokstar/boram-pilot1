@@ -36,8 +36,9 @@ export const useLogin = () => {
             } else {
                 throw new Error(response.message || '로그인에 실패했습니다.');
             }
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.message || err.message || '로그인 중 오류가 발생했습니다.';
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            const errorMessage = error.response?.data?.message || error.message || '로그인 중 오류가 발생했습니다.';
             setError(errorMessage);
             console.error('로그인 실패:', errorMessage);
             return { success: false, error: errorMessage };

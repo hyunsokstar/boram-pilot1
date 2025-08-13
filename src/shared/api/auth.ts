@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { ApiResponse, LoginRequest, LoginResponseData, SignupRequest, SignupResponseData } from "./types";
+import { ApiResponse, LoginRequest, LoginResponseData, SignupRequest, SignupResponseData, User } from "./types";
 
 // 로그인 API
 export const loginApi = async (credentials: LoginRequest): Promise<ApiResponse<LoginResponseData>> => {
@@ -27,12 +27,12 @@ export const getAuthToken = (): string | null => {
 };
 
 // 사용자 정보 저장
-export const saveUserInfo = (userInfo: any) => {
+export const saveUserInfo = (userInfo: User) => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
 };
 
 // 사용자 정보 가져오기
-export const getUserInfo = () => {
+export const getUserInfo = (): User | null => {
     if (typeof window !== 'undefined') {
         const userInfo = localStorage.getItem('userInfo');
         return userInfo ? JSON.parse(userInfo) : null;
