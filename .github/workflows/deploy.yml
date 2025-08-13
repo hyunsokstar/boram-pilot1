@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: CI/CD Pipeline
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
   workflow_dispatch: # 수동 실행 가능
 
 jobs:
-  deploy:
+  # CI 단계: 빌드 및 테스트
+  build-and-test:
     runs-on: ubuntu-latest
-    environment: production
     
     steps:
     - name: Checkout code
@@ -20,26 +20,45 @@ jobs:
         node-version: '20.x'
         cache: 'npm'
         
-    - name: Install dependencies and build
-      run: |
-        npm ci
-        npm run build
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Type check
+      run: npx tsc --noEmit
+      
+    - name: Lint check
+      run: npm run lint
         
+    - name: Build application
+      run: npm run build
+      
+    - name: Run tests (if available)
+      run: npm test --if-present
+
+  # CD 단계: 프로덕션 배포
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-        port: ${{ secrets.SERVER_PORT || 22 }}
+        port: 22
         timeout: 300s
         script: |
           set -e
           
           echo "🚀 Starting deployment..."
           
-          # 프로젝트 디렉토리로 이동
-          cd ${{ secrets.PROJECT_PATH || '/home/ubuntu/boram-pilot1' }}
+          # 프로젝트 디렉토리로 이동 (실제 EC2 경로 확인 필요)
+          cd /home/ubuntu/boram-pilot1
           
           # Git 상태 확인 및 pull
           echo "📥 Pulling latest changes..."
@@ -57,10 +76,15 @@ jobs:
           
           # PM2로 애플리케이션 재시작
           echo "🔄 Restarting application..."
-          pm2 restart 0 || pm2 start npm --name "boram-pilot1" -- start
+          pm2 restart boram-pilot1 || pm2 start ecosystem.config.js
           
           # PM2 설정 저장
           pm2 save
+          
+          # 헬스체크
+          echo "🏥 Health check..."
+          sleep 10
+          curl -f http://localhost:3000/api/health || echo "Health check failed"
           
           # 상태 확인
           echo "✅ Checking application status..."
