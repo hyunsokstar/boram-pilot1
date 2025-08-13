@@ -1,7 +1,7 @@
 module.exports = {
     apps: [{
         name: 'boram-pilot1',
-    cwd: __dirname,
+        cwd: __dirname,
         script: 'npm',
         args: 'start',
         instances: 1,
@@ -10,7 +10,11 @@ module.exports = {
         max_memory_restart: '1G',
         env: {
             NODE_ENV: 'production',
-            PORT: 3000
+            PORT: 3000,
+            // NextAuth base URLs (prod)
+            NEXTAUTH_URL: 'http://3.36.184.159:3000',
+            NEXTAUTH_URL_INTERNAL: 'http://localhost:3000',
+            AUTH_URL: 'http://3.36.184.159:3000'
         },
         env_development: {
             NODE_ENV: 'development',
