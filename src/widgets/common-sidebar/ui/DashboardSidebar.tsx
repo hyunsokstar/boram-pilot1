@@ -1,17 +1,18 @@
 "use client";
 import { useState, useCallback } from "react";
 import { Resizable } from "re-resizable";
+import { sideMenuStructure, type SideMenu } from "@/shared/config/side-menu-structure";
 
 export default function DashboardSidebar() {
-    const [expandedMenus, setExpandedMenus] = useState<string[]>(["조직관리"]);
+    const [expandedMenus, setExpandedMenus] = useState<string[]>(["MNU100"]); // 조직/사원 기본 확장
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(304); // 48 (토글) + 256 (메인)
 
-    const toggleMenu = (menuName: string) => {
+    const toggleMenu = (menuNo: string) => {
         setExpandedMenus(prev =>
-            prev.includes(menuName)
-                ? prev.filter(name => name !== menuName)
-                : [...prev, menuName]
+            prev.includes(menuNo)
+                ? prev.filter(no => no !== menuNo)
+                : [...prev, menuNo]
         );
     };
 
@@ -41,6 +42,61 @@ export default function DashboardSidebar() {
         const finalWidth = ref.offsetWidth;
         setSidebarWidth(finalWidth);
     }, []);
+
+    // 메뉴 렌더링 컴포넌트
+    const renderMenu = (menu: SideMenu, level = 0) => {
+        const hasSubMenu = menu.subMenu && menu.subMenu.length > 0;
+        const isExpanded = expandedMenus.includes(menu.menuNo);
+        const paddingLeft = level * 16 + 8; // 레벨별 들여쓰기
+
+        return (
+            <div key={menu.menuNo} className="mb-1">
+                {hasSubMenu ? (
+                    // 하위 메뉴가 있는 경우 (토글 버튼)
+                    <button
+                        onClick={() => toggleMenu(menu.menuNo)}
+                        className="w-full flex items-center justify-between p-2 text-left hover:bg-slate-700 rounded text-sm"
+                        style={{ paddingLeft: `${paddingLeft}px` }}
+                    >
+                        <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium text-gray-200">{menu.menuNm}</span>
+                        </div>
+                        <svg
+                            className={`w-4 h-4 transition-transform text-gray-400 ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                ) : (
+                    // 하위 메뉴가 없는 경우 (링크)
+                    <a
+                        href={menu.menuHref}
+                        className="block w-full p-2 text-left hover:bg-slate-700 rounded text-sm text-gray-300 hover:text-white transition-colors"
+                        style={{ paddingLeft: `${paddingLeft}px` }}
+                    >
+                        <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{menu.menuNm}</span>
+                        </div>
+                    </a>
+                )}
+
+                {/* 하위 메뉴 렌더링 */}
+                {hasSubMenu && isExpanded && (
+                    <div className="mt-1">
+                        {menu.subMenu.map(subMenu => renderMenu(subMenu, level + 1))}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const toggleSidebar = () => {
         setIsCollapsed(prev => {
@@ -133,67 +189,12 @@ export default function DashboardSidebar() {
                         <>
                             {/* Header */}
                             <div className="p-4 border-b border-slate-600 flex-shrink-0">
-                                <h2 className="text-lg font-semibold text-gray-100">조직/인사</h2>
+                                <h2 className="text-lg font-semibold text-gray-100">메뉴</h2>
                             </div>
 
                             {/* Sidebar Menu */}
                             <div className="flex-1 p-3 overflow-y-auto min-h-0">
-                                {/* 조직관리 */}
-                                <div className="mb-2">
-                                    <button
-                                        onClick={() => toggleMenu("조직관리")}
-                                        className="w-full flex items-center justify-between p-2 text-left hover:bg-slate-700 rounded text-sm"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                                            </svg>
-                                            <span className="font-medium text-gray-200">조직관리</span>
-                                        </div>
-                                        <svg
-                                            className={`w-4 h-4 transition-transform text-gray-400 ${expandedMenus.includes("조직관리") ? 'rotate-90' : ''}`}
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-
-                                    {expandedMenus.includes("조직관리") && (
-                                        <div className="ml-6 mt-1 space-y-1">
-                                            <a href="#" className="block py-1 px-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white rounded">부서등록</a>
-                                            <a href="#" className="block py-1 px-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white rounded">조직구성</a>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* 인사관리 */}
-                                <div className="mb-2">
-                                    <button
-                                        onClick={() => toggleMenu("인사관리")}
-                                        className="w-full flex items-center justify-between p-2 text-left hover:bg-slate-700 rounded text-sm"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                                            </svg>
-                                            <span className="font-medium text-gray-200">인사관리</span>
-                                        </div>
-                                        <svg
-                                            className={`w-4 h-4 transition-transform text-gray-400 ${expandedMenus.includes("인사관리") ? 'rotate-90' : ''}`}
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-
-                                    {expandedMenus.includes("인사관리") && (
-                                        <div className="ml-6 mt-1 space-y-1">
-                                            <a href="#" className="block py-1 px-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white rounded">인사등록</a>
-                                        </div>
-                                    )}
-                                </div>
+                                {sideMenuStructure.map(menu => renderMenu(menu))}
                             </div>
                         </>
                     )}
