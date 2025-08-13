@@ -15,7 +15,11 @@ export default function DashboardSidebar() {
         );
     };
 
-    const handleResize = useCallback((e: any, direction: any, ref: HTMLElement, d: { width: number; height: number }) => {
+    const handleResize = useCallback((
+        _e: MouseEvent | TouchEvent,
+        _direction: string,
+        ref: HTMLElement
+    ) => {
         // 현재 실제 너비를 직접 가져옴
         const currentWidth = ref.offsetWidth;
         setSidebarWidth(currentWidth);
@@ -28,7 +32,11 @@ export default function DashboardSidebar() {
         }
     }, []);
 
-    const handleResizeStop = useCallback((e: any, direction: any, ref: HTMLElement, d: { width: number; height: number }) => {
+    const handleResizeStop = useCallback((
+        _e: MouseEvent | TouchEvent,
+        _direction: string,
+        ref: HTMLElement
+    ) => {
         // 최종 크기 설정
         const finalWidth = ref.offsetWidth;
         setSidebarWidth(finalWidth);
