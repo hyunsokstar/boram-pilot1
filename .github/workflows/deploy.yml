@@ -9,107 +9,128 @@ jobs:
   # CI 단계: 빌드 및 테스트
   build-and-test:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    name: CI/CD Pipeline
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
+    on:
+      push:
+        branches: [ main ]
+      workflow_dispatch: # 수동 실행 가능
 
-      - name: Install dependencies
-        run: npm ci
+    jobs:
+      # CI 단계: 빌드 및 테스트
+      build-and-test:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-      - name: Type check
-        run: npx tsc --noEmit
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '20.x'
+              cache: 'npm'
 
-      - name: Lint check
-        run: npm run lint
+          - name: Install dependencies
+            run: npm ci
 
-      - name: Build application
-        run: npm run build
+          - name: Type check
+            run: npx tsc --noEmit
 
-      - name: Run tests (if available)
-        run: npm test --if-present
+          - name: Lint check
+            run: npm run lint
 
-  # CD 단계: 프로덕션 배포
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          - name: Build application
+            run: npm run build
 
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
-          timeout: 300s
-          script: |
-            set -e
+          - name: Run tests (if available)
+            run: npm test --if-present
 
-            echo "🚀 Starting deployment..."
+      # CD 단계: 프로덕션 배포
+      deploy:
+        needs: build-and-test
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-            # Node.js 확인 및 설치
-            if ! command -v node >/dev/null 2>&1; then
-              echo "📥 Installing Node.js..."
-              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-              sudo apt-get install -y nodejs
-            else
-              echo "✅ Node.js: $(node --version)"
-            fi
+          - name: Deploy to server
+            uses: appleboy/ssh-action@v1.0.3
+            with:
+              host: ${{ secrets.SERVER_HOST }}
+              username: ${{ secrets.SERVER_USER }}
+              key: ${{ secrets.SERVER_SSH_KEY }}
+              port: 22
+              timeout: 300s
+              script: |
+                set -e
 
-            # PM2 확인 및 설치
-            if ! command -v pm2 >/dev/null 2>&1; then
-              echo "📥 Installing PM2..."
-              sudo npm install -g pm2
-            else
-              echo "✅ PM2: $(pm2 -v)"
-            fi
+                echo "🚀 Starting deployment..."
 
-            PROJECT_PATH="/home/ubuntu/boram-pilot1"
-            cd "$PROJECT_PATH"
+                # Node.js 확인 및 설치
+                if ! command -v node >/dev/null 2>&1; then
+                  echo "📥 Installing Node.js..."
+                  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                  sudo apt-get install -y nodejs
+                else
+                  echo "✅ Node.js: $(node --version)"
+                fi
 
-            # EACCES 방지를 위해 소유권 정리 (과거 sudo로 생성된 파일 정리)
-            echo "🔐 Fixing ownership..."
-            sudo chown -R $USER:$USER .
+                # PM2 확인 및 설치
+                if ! command -v pm2 >/dev/null 2>&1; then
+                  echo "📥 Installing PM2..."
+                  sudo npm install -g pm2
+                else
+                  echo "✅ PM2: $(pm2 -v)"
+                fi
 
-            echo "📥 Pulling latest changes..."
-            git fetch --all --prune
-            git reset --hard origin/main
-            git clean -fd
+                PROJECT_PATH="${{ secrets.PROJECT_PATH }}"
+                PROJECT_PATH="${PROJECT_PATH:-/home/ubuntu/boram-pilot1}"
+                cd "$PROJECT_PATH"
 
-            echo "📦 Installing dependencies (including dev for build)..."
-            rm -rf node_modules
-            npm ci --no-audit --no-fund
+                # EACCES 방지를 위해 소유권 정리 (과거 sudo로 생성된 파일 정리)
+                echo "🔐 Fixing ownership..."
+                sudo chown -R $USER:$USER .
 
-            echo "🔨 Building application (production)..."
-            npm run build:production
+                echo "📥 Pulling latest changes..."
+                git fetch --all --prune
+                git reset --hard origin/main
+                git clean -fd
 
-            # 선택: 런타임 최적화를 위해 devDependencies 제거 (빌드 후)
-            echo "🧹 Pruning devDependencies (optional)..."
-            npm prune --omit=dev || true
+                echo "📦 Installing dependencies (including dev for build)..."
+                rm -rf node_modules
+                npm ci --no-audit --no-fund
 
-            echo "🔄 Restarting application via PM2..."
-            pm2 restart boram-pilot1 || pm2 start ecosystem.config.js
-            pm2 save
+                echo "🔨 Building application (production)..."
+                npm run build:production
 
-            echo "🏥 Health check..."
-            sleep 10
-            curl -f http://localhost:3000/api/health || echo "Health check failed"
+                # 선택: 런타임 최적화를 위해 devDependencies 제거 (빌드 후)
+                echo "🧹 Pruning devDependencies (optional)..."
+                npm prune --omit=dev || true
 
-            echo "🎉 Deployment completed successfully!"
+                echo "🔄 Restarting application via PM2..."
+                pm2 restart boram-pilot1 --update-env || pm2 start ecosystem.config.js
+                pm2 save
 
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment succeeded!"
-          else
-            echo "❌ Deployment failed!"
-          fi
+                echo "🏥 Health check..."
+                HEALTH_URL="http://localhost:3000/api/health"
+                for i in $(seq 1 30); do
+                  if curl -sf "$HEALTH_URL" >/dev/null; then
+                    echo "✅ Health check OK"
+                    curl -s "$HEALTH_URL" || true
+                    break
+                  fi
+                  echo "⏳ Waiting for app... ($i/30)"
+                  sleep 3
+                done
+                curl -sf "$HEALTH_URL" || echo "Health check failed"
+
+                echo "🎉 Deployment completed successfully!"
+
+          - name: Notify deployment status
+            if: always()
+            run: |
+              if [ "${{ job.status }}" == "success" ]; then
+                echo "✅ Deployment succeeded!"
+              else
+                echo "❌ Deployment failed!"
+              fi
