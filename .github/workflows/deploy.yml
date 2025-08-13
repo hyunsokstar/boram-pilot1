@@ -94,7 +94,15 @@ jobs:
             npm prune --omit=dev || true
 
             echo "🔄 Restarting application via PM2..."
-            pm2 restart boram-pilot1 --update-env || pm2 start ecosystem.config.js
+            # 빌드 산출물 확인
+            if [ ! -d .next ]; then
+              echo "❌ .next directory not found; build may have failed."
+              exit 1
+            fi
+
+            # 최신 설정 적용을 위해 재생성
+            pm2 delete boram-pilot1 || true
+            pm2 start ecosystem.config.js
             pm2 save
 
             echo "🏥 Health check..."

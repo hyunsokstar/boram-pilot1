@@ -1,6 +1,7 @@
 module.exports = {
     apps: [{
         name: 'boram-pilot1',
+    cwd: __dirname,
         script: 'npm',
         args: 'start',
         instances: 1,
