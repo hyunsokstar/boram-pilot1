@@ -84,12 +84,16 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            echo "📦 Installing dependencies..."
+            echo "📦 Installing dependencies (including dev for build)..."
             rm -rf node_modules
-            npm ci --omit=dev --no-audit --no-fund
+            npm ci --no-audit --no-fund
 
             echo "🔨 Building application (production)..."
             npm run build:production
+
+            # 선택: 런타임 최적화를 위해 devDependencies 제거 (빌드 후)
+            echo "🧹 Pruning devDependencies (optional)..."
+            npm prune --omit=dev || true
 
             echo "🔄 Restarting application via PM2..."
             pm2 restart boram-pilot1 || pm2 start ecosystem.config.js
