@@ -57,6 +57,24 @@ jobs:
           
           echo "🚀 Starting deployment..."
           
+          # Node.js 환경 확인 및 설치
+          echo "🔍 Checking Node.js installation..."
+          if ! command -v node &> /dev/null; then
+            echo "📥 Installing Node.js..."
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          else
+            echo "✅ Node.js already installed: $(node --version)"
+          fi
+          
+          # npm 확인
+          if ! command -v npm &> /dev/null; then
+            echo "📥 Installing npm..."
+            sudo apt-get install -y npm
+          else
+            echo "✅ npm already installed: $(npm --version)"
+          fi
+          
           # 프로젝트 디렉토리로 이동 (실제 EC2 경로 확인 필요)
           cd /home/ubuntu/boram-pilot1
           
@@ -73,6 +91,12 @@ jobs:
           # 빌드 실행
           echo "🔨 Building application..."
           npm run build
+          
+          # PM2 글로벌 설치 확인
+          if ! command -v pm2 &> /dev/null; then
+            echo "📥 Installing PM2..."
+            sudo npm install -g pm2
+          fi
           
           # PM2로 애플리케이션 재시작
           echo "🔄 Restarting application..."
