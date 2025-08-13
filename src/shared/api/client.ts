@@ -2,15 +2,17 @@ import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'ax
 
 // 환경별 API 서버 설정
 const getApiBaseUrl = () => {
-    // 개발 환경
+    // 개발 환경에서는 로컬 백엔드로 직접 호출
     if (process.env.NODE_ENV === 'development') {
         console.log('🔧 개발 환경 - 로컬 Spring Boot 서버 사용');
         return 'http://localhost:8080';
     }
 
-    // 프로덕션 환경
-    console.log('🌐 프로덕션 환경 - EC2 서버 사용');
-    return 'http://43.200.234.52:8080';
+    // 프로덕션에서는 동일 출처 경로를 통해 Next.js 리라이트 프록시로 연결
+    // 기본값: '/backend' (next.config.mjs에서 BACKEND_URL로 프록시)
+    const path = process.env.NEXT_PUBLIC_BACKEND_PATH || '/backend';
+    console.log('🌐 프로덕션 환경 - Same-origin 프록시 사용', path);
+    return path;
 };
 
 // API 베이스 설정

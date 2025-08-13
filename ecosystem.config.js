@@ -14,7 +14,9 @@ module.exports = {
             // NextAuth base URLs (prod)
             NEXTAUTH_URL: 'http://3.36.184.159:3000',
             NEXTAUTH_URL_INTERNAL: 'http://localhost:3000',
-            AUTH_URL: 'http://3.36.184.159:3000'
+            AUTH_URL: 'http://3.36.184.159:3000',
+            // Backend origin for Next.js proxy rewrites
+            BACKEND_URL: 'http://43.200.234.52:8080'
         },
         env_development: {
             NODE_ENV: 'development',
