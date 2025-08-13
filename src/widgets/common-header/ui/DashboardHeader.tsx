@@ -42,7 +42,7 @@ export default function DashboardHeader() {
                             <path d="M10 2L3 7v11h4v-6h6v6h4V7l-7-5z" />
                         </svg>
                     </div>
-                    <span className="font-semibold text-sm">boram</span>
+                    <span className="font-semibold text-sm">boram2</span>
                 </button>
 
                 <div className="relative">
