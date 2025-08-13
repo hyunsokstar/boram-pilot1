@@ -1,28 +1,26 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { headerMenus } from "@/shared/config/header-menus";
 import { useAuthStore } from "@/shared/store";
+import { useSession, signOut } from "next-auth/react";
 
 export default function DashboardHeader() {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
-    const { user, isAuthenticated, logout, initializeAuth } = useAuthStore();
-
-    // 컴포넌트 마운트시 인증 정보 초기화
-    useEffect(() => {
-        initializeAuth();
-    }, [initializeAuth]);
+    const { user, isAuthenticated, logout } = useAuthStore();
+    const { data: session } = useSession();
 
     const handleMenuClick = (menuId: string) => {
         router.push(`/dashboard/${menuId}`);
     };
 
     const handleLogout = () => {
+        // If logged via NextAuth, signOut to clear cookies, otherwise fallback to Zustand logout
+        signOut({ callbackUrl: "/" });
         logout();
         setUserMenuOpen(false);
-        router.push('/');
     };
 
     const isActiveMenu = (menuId: string) => {
@@ -56,7 +54,9 @@ export default function DashboardHeader() {
                                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                             </svg>
                         </div>
-                        {isAuthenticated && user ? (
+                        {session?.user ? (
+                            <span>{session.user.name ?? session.user.email}</span>
+                        ) : isAuthenticated && user ? (
                             <span>{user.department} / {user.name}</span>
                         ) : (
                             <span>로그인 필요</span>
@@ -68,9 +68,9 @@ export default function DashboardHeader() {
 
                     {userMenuOpen && (
                         <ul className="absolute right-0 mt-1 w-44 bg-white shadow-lg rounded border text-sm z-20 text-gray-700">
-                            {isAuthenticated && user && (
+                            {session?.user && (
                                 <li className="px-3 py-2 border-b bg-gray-50 text-gray-500 text-xs">
-                                    {user.role} • {user.name}
+                                    {session.user.email}
                                 </li>
                             )}
                             <li className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b">환경설정</li>

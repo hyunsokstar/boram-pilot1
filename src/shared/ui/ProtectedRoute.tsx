@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/shared/store";
+import { useSession } from "next-auth/react";
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -9,22 +9,15 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const router = useRouter();
-    const { isAuthenticated, initializeAuth, isLoading } = useAuthStore();
+    const { status } = useSession(); // 'loading' | 'authenticated' | 'unauthenticated'
 
     useEffect(() => {
-        // 앱 시작시 인증 정보 초기화
-        initializeAuth();
-    }, [initializeAuth]);
-
-    useEffect(() => {
-        // 인증되지 않은 경우 로그인 페이지로 리다이렉트
-        if (!isLoading && !isAuthenticated) {
-            router.push('/');
+        if (status === "unauthenticated") {
+            router.push("/");
         }
-    }, [isAuthenticated, isLoading, router]);
+    }, [status, router]);
 
-    // 로딩 중일 때 스피너 표시
-    if (isLoading) {
+    if (status === "loading") {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
@@ -35,11 +28,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         );
     }
 
-    // 인증되지 않은 경우 빈 화면 (리다이렉트 처리 중)
-    if (!isAuthenticated) {
-        return null;
-    }
+    if (status !== "authenticated") return null;
 
-    // 인증된 경우에만 children 렌더링
     return <>{children}</>;
 }

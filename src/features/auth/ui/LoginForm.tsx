@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useLogin } from "@/features/auth/model";
+import { signIn } from "next-auth/react";
 
 interface LoginFormProps {
     className?: string;
@@ -16,17 +17,21 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!username || !password) {
             alert("아이디와 비밀번호를 입력하세요.");
             return;
         }
 
         const result = await login({ username, password });
-        
+
         if (result.success) {
             router.push("/dashboard");
         }
+    };
+
+    const handleGoogleSignIn = async () => {
+        await signIn("google", { callbackUrl: "/dashboard" });
     };
 
     return (
@@ -51,7 +56,7 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                             </svg>
                             <span className="text-red-700 text-sm">{error}</span>
-                            <button 
+                            <button
                                 onClick={clearError}
                                 className="ml-auto text-red-400 hover:text-red-600 transition-colors"
                             >
@@ -62,7 +67,7 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
                         </div>
                     </div>
                 )}
-                
+
                 <form className="space-y-6" onSubmit={handleLogin}>
                     {/* 아이디 입력 */}
                     <div className="space-y-2">
@@ -125,11 +130,10 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-300 transform ${
-                            isLoading 
-                                ? 'bg-gray-400 cursor-not-allowed' 
+                        className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-300 transform ${isLoading
+                                ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'
-                        }`}
+                            }`}
                     >
                         {isLoading ? (
                             <div className="flex items-center justify-center">
@@ -144,6 +148,31 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
                         )}
                     </button>
                 </form>
+
+                {/* 구글 로그인 구분선 및 버튼 */}
+                <div className="mt-8">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-gray-200" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-gray-500">또는</span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        className="mt-6 w-full py-3 px-4 rounded-xl font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
+                            <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.602 32.91 29.24 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.957 3.043l5.657-5.657C34.447 6.053 29.447 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z" />
+                            <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 16.108 18.96 14 24 14c3.059 0 5.842 1.156 7.957 3.043l5.657-5.657C34.447 6.053 29.447 4 24 4c-7.798 0-14.4 4.423-17.694 10.691z" />
+                            <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.191l-6.191-5.238C29.24 36 24.878 32.91 24 32.91c-5.211 0-9.564-3.081-11.303-7.41l-6.61 5.093C9.36 39.556 16.138 44 24 44z" />
+                            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.081 3.111-4.403 5.818-7.303 5.818 0 0 9.764 0 14.211-10.818z" />
+                        </svg>
+                        Google로 로그인
+                    </button>
+                </div>
 
                 {/* 추가 옵션들 */}
                 <div className="mt-6 pt-6 border-t border-gray-100">
