@@ -2,6 +2,7 @@
 import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useAuthStore } from "@/shared/store";
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -10,12 +11,14 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const router = useRouter();
     const { status } = useSession(); // 'loading' | 'authenticated' | 'unauthenticated'
+    const { isAuthenticated } = useAuthStore(); // legacy auth (Zustand)
 
     useEffect(() => {
-        if (status === "unauthenticated") {
+        // 만약 NextAuth는 비인증 상태이고, Zustand도 비인증이면 로그인 페이지로 이동
+        if (status === "unauthenticated" && !isAuthenticated) {
             router.push("/");
         }
-    }, [status, router]);
+    }, [status, isAuthenticated, router]);
 
     if (status === "loading") {
         return (
@@ -28,7 +31,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         );
     }
 
-    if (status !== "authenticated") return null;
+    // NextAuth가 인증되었거나(소셜 로그인),
+    // 또는 기존 로컬 로그인(Zustand)이 true인 경우 접근 허용
+    if (status === "authenticated" || isAuthenticated) {
+        return <>{children}</>;
+    }
 
-    return <>{children}</>;
+    // 리다이렉트 진행 중에는 비어있는 화면 방지 위해 간단한 플레이스홀더 반환
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-white">
+            <p className="text-gray-500">이동 중...</p>
+        </div>
+    );
 }
