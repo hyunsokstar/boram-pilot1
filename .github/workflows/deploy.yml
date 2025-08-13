@@ -78,11 +78,20 @@ jobs:
           # 프로젝트 디렉토리로 이동 (실제 EC2 경로 확인 필요)
           cd /home/ubuntu/boram-pilot1
           
+          # 디렉토리 권한 설정
+          echo "🔐 Setting directory permissions..."
+          sudo chown -R ubuntu:ubuntu /home/ubuntu/boram-pilot1
+          sudo chmod -R 755 /home/ubuntu/boram-pilot1
+          
           # Git 상태 확인 및 pull
           echo "📥 Pulling latest changes..."
-          sudo git fetch origin
-          sudo git reset --hard origin/main
-          sudo git clean -fd
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd
+          
+          # 기존 node_modules 및 package-lock.json 제거 (권한 문제 방지)
+          echo "🧹 Cleaning previous installation..."
+          rm -rf node_modules package-lock.json
           
           # Node.js 의존성 설치
           echo "📦 Installing dependencies..."
