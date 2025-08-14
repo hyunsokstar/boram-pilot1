@@ -28,13 +28,17 @@ export const useTabStore = create<TabStore>((set, get) => ({
     addTab: (newTab) => {
         const { tabs } = get();
 
-        // 중복 탭 체크
-        const existingTab = tabs.find(t => t.menuNo === newTab.menuNo);
-        if (existingTab) {
-            set({ activeTabId: existingTab.id });
+        // 중복 탭 체크 - 항상 새로 추가하도록 변경
+        const existingTabIndex = tabs.findIndex(t => t.menuNo === newTab.menuNo);
+
+        // 기존 탭이 있다면 제거하지 않고 활성화만
+        if (existingTabIndex !== -1) {
+            console.log('기존 탭 활성화:', newTab.menuNo);
+            set({ activeTabId: tabs[existingTabIndex].id });
             return;
         }
 
+        // 새 탭 추가
         const maxOrder = Math.max(...tabs.map(t => t.order), -1);
         const tabWithOrder: DynamicTab = {
             ...newTab,
@@ -42,6 +46,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
             isClosable: newTab.isClosable ?? true
         };
 
+        console.log('새 탭 추가:', tabWithOrder);
         set({
             tabs: [...tabs, tabWithOrder],
             activeTabId: newTab.id
@@ -50,15 +55,15 @@ export const useTabStore = create<TabStore>((set, get) => ({
 
     removeTab: (tabId) => {
         const { tabs } = get();
-        
+
         console.log('탭 삭제:', tabId);
         console.log('삭제 전 탭들:', tabs.map(t => ({ id: t.id, label: t.label })));
-        
+
         // 단순히 탭만 삭제 (활성 탭 변경은 레이아웃에서 처리)
         const filteredTabs = tabs.filter(tab => tab.id !== tabId);
-        
+
         console.log('삭제 후 탭들:', filteredTabs.map(t => ({ id: t.id, label: t.label })));
-        
+
         set({
             tabs: filteredTabs
             // activeTabId는 여기서 변경하지 않음

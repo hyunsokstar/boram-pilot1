@@ -5,10 +5,12 @@
 
 export { default as TabBar } from './ui/tab-bar';
 export { default as TabGroup } from './ui/tab-group';
+export { default as DropZoneOverlay } from './ui/drop-zone-overlay';
 export { default as DynamicTab } from './ui/dynamic-tab';
 export { default as DraggableTab } from './ui/draggable-tab';
 export type { TabItem, TabBarProps } from './ui/tab-bar';
 export type { TabGroupProps } from './ui/tab-group';
+export type { DropZoneOverlayProps, DropPosition } from './ui/drop-zone-overlay';
 export { useTabStore } from './model/tabStore';
 export type { 
     DynamicTab as DynamicTabType, 

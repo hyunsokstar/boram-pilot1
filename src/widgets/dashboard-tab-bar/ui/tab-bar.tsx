@@ -6,26 +6,7 @@
 "use client";
 
 import React from 'react';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import {
-    SortableContext,
-    sortableKeyboardCoordinates,
-    horizontalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-    restrictToHorizontalAxis,
-    restrictToParentElement,
-} from '@dnd-kit/modifiers';
-
 import DraggableTab from './draggable-tab';
-import type { DragEndEvent } from '@dnd-kit/core';
 import type { TabArea } from '../model/types';
 
 /**
@@ -89,19 +70,6 @@ export default function TabBar({
     area,
     className = ""
 }: TabBarProps) {
-    // 드래그 센서 설정 - 더 부드러운 드래그를 위한 최적화
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            // 드래그 시작을 위한 최소 거리 (클릭과 구분) - 더 작게 설정
-            activationConstraint: {
-                distance: 3,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
     /**
      * 탭 클릭 핸들러
      */
@@ -116,23 +84,6 @@ export default function TabBar({
         onTabClose?.(tabId);
     };
 
-    /**
-     * 드래그 종료 핸들러
-     * 탭 순서를 실제로 변경하는 로직
-     */
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            const oldIndex = tabs.findIndex(tab => tab.id === String(active.id));
-            const newIndex = tabs.findIndex(tab => tab.id === String(over.id));
-
-            if (oldIndex !== -1 && newIndex !== -1) {
-                onTabReorder?.(oldIndex, newIndex);
-            }
-        }
-    };
-
     // 탭이 없는 경우 안내 메시지 표시
     if (tabs.length === 0) {
         return (
@@ -144,41 +95,31 @@ export default function TabBar({
         );
     }
 
-    // 탭 ID 배열 (드래그 컨텍스트용)
-    const tabIds = tabs.map(tab => tab.id);
-
     return (
-        <div className={`bg-gray-50 border-b border-gray-200 p-2 ${className}`}>
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-                modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+        <div className={`bg-gray-50 border-b border-gray-200 p-2 ${className}`} style={{ overflow: 'visible', position: 'relative' }}>
+            <nav
+                className="flex gap-1"
+                aria-label="Tabs"
+                role="tablist"
+                style={{ 
+                    overflow: 'visible', 
+                    position: 'relative',
+                    zIndex: 1
+                }}
             >
-                <SortableContext
-                    items={tabIds}
-                    strategy={horizontalListSortingStrategy}
-                >
-                    <nav
-                        className="flex gap-1 overflow-x-auto scrollbar-hide"
-                        aria-label="Tabs"
-                        role="tablist"
-                    >
-                        {tabs.map((tab) => (
-                            <DraggableTab
-                                key={tab.id}
-                                id={tab.id}
-                                label={tab.label}
-                                isActive={activeTab === tab.id}
-                                isClosable={tab.isClosable}
-                                onTabClick={handleTabClick}
-                                onTabClose={handleCloseTab}
-                                area={area}
-                            />
-                        ))}
-                    </nav>
-                </SortableContext>
-            </DndContext>
+                {tabs.map((tab) => (
+                    <DraggableTab
+                        key={tab.id}
+                        id={tab.id}
+                        label={tab.label}
+                        isActive={activeTab === tab.id}
+                        isClosable={tab.isClosable}
+                        onTabClick={handleTabClick}
+                        onTabClose={handleCloseTab}
+                        area={area}
+                    />
+                ))}
+            </nav>
         </div>
     );
 }

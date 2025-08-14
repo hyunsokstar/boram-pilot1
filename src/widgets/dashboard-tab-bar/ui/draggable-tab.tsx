@@ -6,7 +6,7 @@
 "use client";
 
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { TabArea } from '../model/types';
 
@@ -58,31 +58,34 @@ export default function DraggableTab({
     onTabClose,
     area
 }: DraggableTabProps) {
-    // dnd-kit의 sortable 훅 사용
+    // dnd-kit의 draggable 훅 사용
     const {
         attributes,
         listeners,
         setNodeRef,
         transform,
-        transition,
         isDragging,
-    } = useSortable({ 
+    } = useDraggable({
         id,
         data: {
+            type: 'tab',
             area: area, // 영역 정보를 data로 전달
+            label: label, // 라벨도 전달
         }
     });
 
     // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
     const style = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? 'none' : transition, // 드래그 중에는 transition 제거
-        // 드래그 중에는 약간 투명하게
-        opacity: isDragging ? 0.9 : 1,
-        // 드래그 중에는 z-index 높게
-        zIndex: isDragging ? 1000 : 1,
-        // 드래그 중 스케일 효과
-        scale: isDragging ? 1.02 : 1,
+        // 드래그 중에는 완전히 투명하게 (DragOverlay가 대신 표시)
+        opacity: isDragging ? 0 : 1,
+        // 드래그 중에는 z-index 높게 - 다른 영역으로 이동할 수 있도록
+        zIndex: isDragging ? 9999 : 1,
+        // 드래그 중에는 크기와 레이아웃을 고정
+        width: isDragging ? 'auto' : 'auto',
+        height: isDragging ? 'auto' : 'auto',
+        // 드래그 중에는 position을 고정하여 컨테이너 밖으로 나갈 수 있도록
+        position: isDragging ? 'fixed' as const : 'relative' as const,
     };
 
     /**
