@@ -64,12 +64,15 @@ export default function DashboardHeader() {
             <nav className="flex items-center justify-between px-6 py-3">
                 {/* 로고/브랜드 영역 */}
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => router.push('/dashboard')}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-lg px-2 py-1"
+                    >
                         <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-sm">B</span>
                         </div>
                         <span className="text-xl font-bold text-gray-900">Boram</span>
-                    </div>
+                    </button>
                 </div>
 
                 {/* 메뉴 영역 */}
