@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../api/types';
-import { getAuthToken, getUserInfo, logout as apiLogout } from '../api/auth';
+import { getAuthToken, getUserInfo } from '../api/auth';
 
 interface AuthState {
     user: User | null;
@@ -41,9 +41,6 @@ export const useAuthStore = create<AuthState>()(
                 }),
 
             logout: () => {
-                // API 로그아웃 (localStorage 클리어)
-                apiLogout();
-
                 // Zustand 상태 초기화
                 set({
                     user: null,
