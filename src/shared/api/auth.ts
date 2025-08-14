@@ -3,8 +3,24 @@ import { ApiResponse, LoginRequest, LoginResponseData, SignupRequest, SignupResp
 
 // 로그인 API
 export const loginApi = async (credentials: LoginRequest): Promise<ApiResponse<LoginResponseData>> => {
-    const response = await apiClient.post<ApiResponse<LoginResponseData>>('/auth/login', credentials);
-    return response.data;
+  const endpoint = "/auth/login"; // prod: /backend/auth/login 로 프록시됨
+
+  const form = new URLSearchParams();
+  form.set("username", credentials.username);
+  form.set("password", credentials.password);
+
+  const res = await apiClient.post<ApiResponse<LoginResponseData>>(
+    endpoint,
+    form.toString(),
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        Accept: "application/json",
+      },
+      transformRequest: [(d) => d], // axios의 JSON 변환 방지
+    }
+  );
+  return res.data;
 };
 
 // 회원가입 API
