@@ -42,12 +42,15 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'http://43.200.234.52:8080' }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           timeout: 300s
+          envs: BACKEND_URL
           script: |
             set -e
 
@@ -85,12 +88,17 @@ jobs:
             echo "📦 Installing dependencies (including dev for build)..."
             rm -rf node_modules
             npm ci --no-audit --no-fund
+            
+            # TailwindCSS 관련 패키지 설치 (필요한 경우)
+            npm i -D @tailwindcss/postcss tailwindcss postcss autoprefixer || true
 
             echo "🔨 Building application (production)..."
-            # Ensure BACKEND_URL is set for Next.js rewrites at build time
-            export BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+            # 프로덕션 환경변수 설정
+            export BACKEND_URL="${BACKEND_URL:-http://43.200.234.52:8080}"
+            export NODE_ENV=production
             echo "Using BACKEND_URL=$BACKEND_URL"
-            npm run build:production
+            echo "Using NODE_ENV=$NODE_ENV"
+            npm run build
 
             # 선택: 런타임 최적화를 위해 devDependencies 제거 (빌드 후)
             echo "🧹 Pruning devDependencies (optional)..."
@@ -102,6 +110,10 @@ jobs:
               echo "❌ .next directory not found; build may have failed."
               exit 1
             fi
+
+            # 환경변수 설정 파일 생성
+            echo "BACKEND_URL=${BACKEND_URL:-http://43.200.234.52:8080}" > .env.production
+            echo "NODE_ENV=production" >> .env.production
 
             # 최신 설정 적용을 위해 재생성
             pm2 delete boram-pilot1 || true
