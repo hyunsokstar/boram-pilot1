@@ -22,7 +22,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         activeTabId,
         removeTab,
         setActiveTab,
-        getSortedTabs
+        getSortedTabs,
+        reorderTabs
     } = useTabStore();
 
     // 정렬된 탭 배열 가져오기
@@ -53,6 +54,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         if (selectedTab.href && selectedTab.href.trim() !== "") {
             router.push(selectedTab.href);
         }
+    };
+
+    /**
+     * 탭 순서 변경 핸들러 (드래그 앤 드롭용)
+     * 
+     * @param sourceIndex 원본 탭의 인덱스
+     * @param destinationIndex 목표 탭의 인덱스
+     */
+    const handleTabReorder = (sourceIndex: number, destinationIndex: number) => {
+        console.log('탭 순서 변경:', { sourceIndex, destinationIndex });
+        reorderTabs(sourceIndex, destinationIndex);
     };
 
     // 탭 닫기 핸들러
@@ -117,6 +129,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     activeTab={activeTopNo || undefined}
                                     onTabChange={handleTabChange}
                                     onTabClose={handleTabClose}
+                                    onTabReorder={handleTabReorder}
                                 />
                             </div>
                         </div>
