@@ -8,10 +8,9 @@ const getApiBaseUrl = () => {
         return 'http://localhost:8080';
     }
 
-    // 프로덕션에서는 동일 출처 경로를 통해 Next.js 리라이트 프록시로 연결
-    // 기본값: '/backend' (next.config.mjs에서 BACKEND_URL로 프록시)
-    const path = process.env.NEXT_PUBLIC_BACKEND_PATH || '/backend';
-    console.log('🌐 프로덕션 환경 - Same-origin 프록시 사용', path);
+    // 프로덕션에서는 rewrites 경로를 통해 백엔드 API 서버로 연결
+    const path = '/backend';
+    console.log('🌐 프로덕션 환경 - rewrites 프록시 사용', path);
     return path;
 };
 
