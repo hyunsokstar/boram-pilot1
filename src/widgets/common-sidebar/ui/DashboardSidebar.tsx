@@ -5,6 +5,7 @@ import { NAV_OPEN_TOP_EVENT, type NavOpenTopDetail } from "@/shared/config/commo
 import { sideMenus, type SideMenuItem as SideMenu } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { Resizable, type ResizeCallback } from "re-resizable";
+import SidebarMenuItem from "./SidebarMenuItem";
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
@@ -14,6 +15,7 @@ export default function DashboardSidebar() {
     const expandedSet = useNavStore((s) => s.expanded);
     const activeTopNo = useNavStore((s) => s.activeTopNo);
     const activeLeafNo = useNavStore((s) => s.activeLeafNo);
+    const filteredTopNo = useNavStore((s) => s.filteredTopNo);
     const toggle = useNavStore((s) => s.toggle);
     const openTop = useNavStore((s) => s.openTop);
     const setFromPath = useNavStore((s) => s.setFromPath);
@@ -92,26 +94,18 @@ export default function DashboardSidebar() {
             >
                 {/* 최상위 + 하위 있음 → 토글 버튼 */}
                 {isTop && hasSubMenu ? (
-                    <button
+                    <SidebarMenuItem
+                        menuNm={menu.menuNm}
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
-                        className={`w-full flex items-center justify-between p-2 text-left rounded text-sm transition-colors hover:bg-slate-700
-                        ${isActiveTopSelf ? "bg-slate-700/80 text-white font-semibold border-l-2 border-indigo-400" : ""}
-                        ${highlightTopNo === menu.menuNo ? "ring-2 ring-indigo-400/60" : ""}`}
-                        style={{ paddingLeft }}
-                        aria-expanded={isExpanded}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${branchHasActive ? "bg-indigo-400" : "bg-gray-400"}`} />
-                            <span className={`font-medium ${isActiveTopSelf ? "text-white" : "text-white"}`}>{menu.menuNm}</span>
-                        </div>
-                        <svg
-                            className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90 text-gray-100" : "text-gray-400"}`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                    </button>
+                        isActive={isActiveTopSelf}
+                        hasSubMenu={hasSubMenu}
+                        isExpanded={isExpanded}
+                        paddingLeft={paddingLeft}
+                        isTop={true}
+                        highlightTopNo={highlightTopNo}
+                        menuNo={menu.menuNo}
+                        icon={<span className={`inline-block w-1.5 h-1.5 rounded-full ${branchHasActive ? "bg-indigo-400" : "bg-gray-400"}`} />}
+                    />
                 ) : null}
 
                 {/* 최상위 + 하위 없음 → 클릭 가능한 라벨 (강한 선택 효과) */}
@@ -119,9 +113,9 @@ export default function DashboardSidebar() {
                     <button
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
                         disabled={!menu.menuHref || !menu.menuHref.trim()}
-                        className={`w-full flex items-center p-2 rounded text-sm transition-colors text-left ${isActiveTopLabel
+                        className={`w-full flex items-center p-2 rounded text-sm transition-all duration-200 text-left active:scale-95 ${isActiveTopLabel
                             ? "bg-slate-700/80 text-white font-semibold border-l-3 border-indigo-400 shadow-md"
-                            : "text-white hover:bg-slate-700/40"
+                            : "text-white hover:bg-slate-700/40 active:bg-slate-600"
                             } ${highlightTopNo === menu.menuNo ? "ring-2 ring-indigo-400/60" : ""}
                             ${!menu.menuHref || !menu.menuHref.trim() ? "cursor-default" : "cursor-pointer"}`}
                         style={{ paddingLeft }}
@@ -136,7 +130,7 @@ export default function DashboardSidebar() {
                 {!isTop && hasSubMenu ? (
                     <button
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
-                        className="w-full flex items-center justify-between p-2 text-left rounded text-sm transition-colors hover:bg-slate-700"
+                        className="w-full flex items-center justify-between p-2 text-left rounded text-sm transition-all duration-200 hover:bg-slate-700 active:scale-95 active:bg-slate-600"
                         style={{ paddingLeft }}
                         aria-expanded={isExpanded}
                     >
@@ -159,9 +153,9 @@ export default function DashboardSidebar() {
                     <button
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
                         disabled={!menu.menuHref || !menu.menuHref.trim()}
-                        className={`block w-full p-2 text-left rounded text-sm transition-colors ${isActiveLeaf
+                        className={`block w-full p-2 text-left rounded text-sm transition-all duration-200 active:scale-95 ${isActiveLeaf
                             ? "bg-slate-700 text-white font-medium border-l-2 border-indigo-400"
-                            : "text-gray-300 hover:text-white hover:bg-slate-700"
+                            : "text-gray-300 hover:text-white hover:bg-slate-700 active:bg-slate-600"
                             } ${!menu.menuHref || !menu.menuHref.trim() ? "cursor-default opacity-50" : "cursor-pointer"}`}
                         style={{ paddingLeft }}
                         aria-current={isActiveLeaf ? "page" : undefined}
@@ -235,7 +229,25 @@ export default function DashboardSidebar() {
                                 <h2 className="text-lg font-semibold text-gray-100">메뉴</h2>
                             </div>
                             <div className="flex-1 p-3 overflow-y-auto min-h-0">
-                                {sideMenus.map((menu) => renderMenu(menu as SideMenu, 0))}
+                                {/* 필터링 상태 표시 및 전체 보기 버튼 */}
+                                {filteredTopNo && (
+                                    <div className="mb-3 p-2 bg-slate-700/50 rounded text-sm">
+                                        <div className="flex items-center justify-between text-gray-300">
+                                            <span>필터링 중: {sideMenus.find(m => m.menuNo === filteredTopNo)?.menuNm}</span>
+                                            <button
+                                                onClick={() => useNavStore.getState().setFilteredTop(null)}
+                                                className="text-indigo-400 hover:text-indigo-300 text-xs"
+                                            >
+                                                전체 보기
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {sideMenus
+                                    .filter(menu => filteredTopNo ? menu.menuNo === filteredTopNo : true)
+                                    .map((menu) => renderMenu(menu as SideMenu, 0))
+                                }
                             </div>
                         </>
                     )}

@@ -5,9 +5,11 @@ type NavState = {
   expanded: Set<string>;
   activeTopNo: string | null;
   activeLeafNo: string | null;
+  filteredTopNo: string | null; // 헤더에서 선택된 최상위 메뉴
   toggle: (menuNo: string) => void;
   openTop: (menuNo: string) => void;
   setFromPath: (path: string) => void;
+  setFilteredTop: (menuNo: string | null) => void; // 필터링 설정
 };
 
 function findBestMatchByPath(path: string) {
@@ -47,6 +49,7 @@ export const useNavStore = create<NavState>((set) => ({
   expanded: new Set<string>(["MNU100"]),
   activeTopNo: null,
   activeLeafNo: null,
+  filteredTopNo: null,
 
   toggle: (menuNo) =>
     set((s) => {
@@ -65,6 +68,11 @@ export const useNavStore = create<NavState>((set) => ({
       next.add(menuNo);
       return { expanded: next, activeTopNo: menuNo };
     }),
+
+  setFilteredTop: (menuNo) =>
+    set(() => ({
+      filteredTopNo: menuNo,
+    })),
 
   setFromPath: (path: string) =>
     set((s) => {
