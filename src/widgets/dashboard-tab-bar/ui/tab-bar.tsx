@@ -85,12 +85,12 @@ export default function TabBar({
     onTabReorder,
     className = ""
 }: TabBarProps) {
-    // 드래그 센서 설정
+    // 드래그 센서 설정 - 더 부드러운 드래그를 위한 최적화
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            // 드래그 시작을 위한 최소 거리 (클릭과 구분)
+            // 드래그 시작을 위한 최소 거리 (클릭과 구분) - 더 작게 설정
             activationConstraint: {
-                distance: 8,
+                distance: 3,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -132,7 +132,7 @@ export default function TabBar({
     // 탭이 없는 경우 안내 메시지 표시
     if (tabs.length === 0) {
         return (
-            <div className={`border-b border-gray-200 ${className}`}>
+            <div className={`bg-gray-50 border-b border-gray-200 p-2 ${className}`}>
                 <div className="py-4 px-1 text-sm text-gray-500">
                     헤더 메뉴를 클릭하여 탭을 추가하세요
                 </div>
@@ -144,7 +144,7 @@ export default function TabBar({
     const tabIds = tabs.map(tab => tab.id);
 
     return (
-        <div className={`border-b border-gray-200 ${className}`}>
+        <div className={`bg-gray-50 border-b border-gray-200 p-2 ${className}`}>
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -156,7 +156,7 @@ export default function TabBar({
                     strategy={horizontalListSortingStrategy}
                 >
                     <nav
-                        className="flex space-x-1"
+                        className="flex gap-1 overflow-x-auto scrollbar-hide"
                         aria-label="Tabs"
                         role="tablist"
                     >

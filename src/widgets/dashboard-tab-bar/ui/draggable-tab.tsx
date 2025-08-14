@@ -64,14 +64,16 @@ export default function DraggableTab({
         isDragging,
     } = useSortable({ id });
 
-    // 드래그 중 스타일 적용
+    // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
     const style = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: isDragging ? 'none' : transition, // 드래그 중에는 transition 제거
         // 드래그 중에는 약간 투명하게
-        opacity: isDragging ? 0.8 : 1,
+        opacity: isDragging ? 0.9 : 1,
         // 드래그 중에는 z-index 높게
         zIndex: isDragging ? 1000 : 1,
+        // 드래그 중 스케일 효과
+        scale: isDragging ? 1.02 : 1,
     };
 
     /**
@@ -99,12 +101,13 @@ export default function DraggableTab({
             ref={setNodeRef}
             style={style}
             className={`
-                group relative flex items-center px-3 py-2 border-b-2 font-medium text-sm transition-all duration-200 cursor-pointer
+                group relative flex items-center px-3 py-2 border-2 font-medium text-sm transition-all duration-200 cursor-pointer
                 ${isActive
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50'
+                    : 'border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-white bg-white'
                 }
-                ${isDragging ? 'shadow-lg ring-2 ring-blue-300 rounded-lg' : ''}
+                ${isDragging ? 'shadow-lg border-blue-400 bg-blue-100' : ''}
+                min-w-0 flex-shrink-0
             `}
             onClick={handleClick}
             aria-current={isActive ? 'page' : undefined}
@@ -112,15 +115,15 @@ export default function DraggableTab({
             {...attributes}
             {...listeners}
         >
-            {/* 드래그 핸들 아이콘 (선택사항) */}
-            <div className="mr-2 opacity-0 group-hover:opacity-50 transition-opacity">
+            {/* 드래그 핸들 아이콘 */}
+            <div className="mr-2 opacity-0 group-hover:opacity-60 transition-opacity">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/>
+                    <path d="M8 6h2v2H8zm0 4h2v2H8zm0 4h2v2H8zm6-8h2v2h-2zm0 4h2v2h-2zm0 4h2v2h-2z" />
                 </svg>
             </div>
 
             {/* 탭 라벨 */}
-            <span className="whitespace-nowrap select-none">{label}</span>
+            <span className="whitespace-nowrap select-none truncate">{label}</span>
 
             {/* 닫기 버튼 */}
             {isClosable && (
@@ -129,25 +132,20 @@ export default function DraggableTab({
                     onClick={handleClose}
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`
-                        ml-2 px-1.5 py-1.5 rounded-full transition-all duration-200 flex-shrink-0
+                        ml-2 p-1 border rounded transition-all duration-200 flex-shrink-0
                         ${isActive
-                            ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100 opacity-100'
-                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-70 group-hover:opacity-100'
+                            ? 'text-blue-600 border-blue-300 hover:text-blue-800 hover:border-blue-400 hover:bg-blue-100'
+                            : 'text-gray-500 border-gray-300 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-100'
                         }
-                        hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-300
+                        hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300
                     `}
                     title="탭 닫기"
                     aria-label={`${label} 탭 닫기`}
                 >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-            )}
-
-            {/* 드래그 중일 때 표시할 플레이스홀더 */}
-            {isDragging && (
-                <div className="absolute inset-0 bg-blue-100 border-2 border-dashed border-blue-300 rounded-lg opacity-50" />
             )}
         </div>
     );
