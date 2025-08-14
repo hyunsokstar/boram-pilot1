@@ -6,38 +6,47 @@ import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
 import { TabBar } from "@/widgets/dashboard-tab-bar";
 import { ProtectedRoute } from "@/shared/ui";
+import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
+import { findTopByPath } from "@/shared/config/common-nav-menus";
+import { useNavStore } from "@/shared/store/navStore";
+import { useMemo } from "react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
+    const setFilteredTop = useNavStore((s) => s.setFilteredTop);
 
-    const dashboardTabs = [
-        { id: 'organization', label: '조직/인사' },
-        { id: 'member', label: '회원/계약' },
-        { id: 'payment', label: '수납' },
-        { id: 'sales', label: '영업관리' },
-        { id: 'crm', label: 'CRM' },
-        { id: 'hr', label: 'HR' },
-        { id: 'event', label: '이벤트' },
-        { id: 'purchase', label: '구매' },
-        { id: 'system', label: '시스템관리' }
-    ];
+    // 헤더 메뉴를 탭바용으로 변환
+    const dashboardTabs = headerMenus.map(menu => ({
+        id: menu.menuNo,
+        label: menu.label,
+        href: menu.href,
+        menuNo: menu.menuNo
+    }));
 
-    // 현재 경로에서 활성 탭 추출
-    const getCurrentTab = () => {
-        const pathSegments = pathname.split('/');
-        const currentPage = pathSegments[2]; // /dashboard/[page]
+    // 현재 활성 탭 계산 (헤더와 동일한 로직)
+    const activeTopNo = useMemo(
+        () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
+        [pathname]
+    );
 
-        // 기본 대시보드 경로면 organization으로 설정
-        if (!currentPage || currentPage === '') {
-            return 'organization';
+    // 탭 클릭 핸들러 (헤더와 동일한 로직)
+    const handleTabChange = (tabId: string) => {
+        const selectedTab = dashboardTabs.find(tab => tab.id === tabId);
+        if (!selectedTab) return;
+
+        // 사이드바 필터링 설정 (헤더와 동일)
+        setFilteredTop(selectedTab.menuNo);
+
+        // 항상 사이드바 이벤트 발생 (메뉴 펼치기 용)
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo: selectedTab.menuNo } }));
         }
 
-        return currentPage;
-    };
-
-    const handleTabChange = (tabId: string) => {
-        router.push(`/dashboard/${tabId}`);
+        // href가 있으면 페이지 이동
+        if (selectedTab.href && selectedTab.href.trim() !== "") {
+            router.push(selectedTab.href);
+        }
     };
 
     return (
@@ -51,7 +60,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div className="px-6">
                                 <TabBar
                                     tabs={dashboardTabs}
-                                    activeTab={getCurrentTab()}
+                                    activeTab={activeTopNo || undefined}
                                     onTabChange={handleTabChange}
                                 />
                             </div>
