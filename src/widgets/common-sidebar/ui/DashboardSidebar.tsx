@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { NAV_OPEN_TOP_EVENT, type NavOpenTopDetail } from "@/shared/config/common-nav-menus";
 import { sideMenus, type SideMenuItem as SideMenu } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
-import { Resizable } from "re-resizable";
+import { Resizable, type ResizeCallback } from "re-resizable";
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
@@ -120,8 +120,8 @@ export default function DashboardSidebar() {
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
                         disabled={!menu.menuHref || !menu.menuHref.trim()}
                         className={`w-full flex items-center p-2 rounded text-sm transition-colors text-left ${isActiveTopLabel
-                                ? "bg-slate-700/80 text-white font-semibold border-l-3 border-indigo-400 shadow-md"
-                                : "text-white hover:bg-slate-700/40"
+                            ? "bg-slate-700/80 text-white font-semibold border-l-3 border-indigo-400 shadow-md"
+                            : "text-white hover:bg-slate-700/40"
                             } ${highlightTopNo === menu.menuNo ? "ring-2 ring-indigo-400/60" : ""}
                             ${!menu.menuHref || !menu.menuHref.trim() ? "cursor-default" : "cursor-pointer"}`}
                         style={{ paddingLeft }}
@@ -160,8 +160,8 @@ export default function DashboardSidebar() {
                         onClick={() => handleMenuClick(menu, hasSubMenu)}
                         disabled={!menu.menuHref || !menu.menuHref.trim()}
                         className={`block w-full p-2 text-left rounded text-sm transition-colors ${isActiveLeaf
-                                ? "bg-slate-700 text-white font-medium border-l-2 border-indigo-400"
-                                : "text-gray-300 hover:text-white hover:bg-slate-700"
+                            ? "bg-slate-700 text-white font-medium border-l-2 border-indigo-400"
+                            : "text-gray-300 hover:text-white hover:bg-slate-700"
                             } ${!menu.menuHref || !menu.menuHref.trim() ? "cursor-default opacity-50" : "cursor-pointer"}`}
                         style={{ paddingLeft }}
                         aria-current={isActiveLeaf ? "page" : undefined}
@@ -183,13 +183,13 @@ export default function DashboardSidebar() {
         );
     };
 
-    const handleResize = useCallback((_e: any, _d: any, ref: HTMLElement) => {
+    const handleResize: ResizeCallback = useCallback((_e, _d, ref) => {
         const w = ref.offsetWidth;
         setSidebarWidth(w);
         setIsCollapsed(w < 100);
     }, []);
 
-    const handleResizeStop = useCallback((_e: any, _d: any, ref: HTMLElement) => {
+    const handleResizeStop: ResizeCallback = useCallback((_e, _d, ref) => {
         setSidebarWidth(ref.offsetWidth);
     }, []);
 
