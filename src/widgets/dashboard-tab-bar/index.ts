@@ -1,6 +1,5 @@
-export { default as TabBar, defaultTabs } from './ui/tab-bar';
+export { default as TabBar } from './ui/tab-bar';
+export { default as DynamicTab } from './ui/dynamic-tab';
 export type { TabItem, TabBarProps } from './ui/tab-bar';
-
-// 향후 확장을 위한 구조
-// export { useTabStore } from './model/store';
-// export { useTabActions } from './model/hooks';
+export { useTabStore } from './model/tabStore';
+export type { DynamicTab as DynamicTabType, TabBarState, TabActions } from './model/types';

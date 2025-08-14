@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
+import DynamicTab from './dynamic-tab';
 
 export interface TabItem {
     id: string;
     label: string;
     href?: string;
+    menuNo?: string;
+    isClosable?: boolean;
 }
 
 export interface TabBarProps {
     tabs: TabItem[];
     activeTab?: string;
     onTabChange?: (tabId: string) => void;
+    onTabClose?: (tabId: string) => void;
     className?: string;
 }
 
@@ -19,43 +23,42 @@ export default function TabBar({
     tabs,
     activeTab,
     onTabChange,
+    onTabClose,
     className = ""
 }: TabBarProps) {
-    const [currentTab, setCurrentTab] = useState(activeTab || tabs[0]?.id);
-
     const handleTabClick = (tabId: string) => {
-        setCurrentTab(tabId);
         onTabChange?.(tabId);
     };
 
+    const handleCloseTab = (tabId: string) => {
+        onTabClose?.(tabId);
+    };
+
+    if (tabs.length === 0) {
+        return (
+            <div className={`border-b border-gray-200 ${className}`}>
+                <div className="py-4 px-1 text-sm text-gray-500">
+                    헤더 메뉴를 클릭하여 탭을 추가하세요
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`border-b border-gray-200 ${className}`}>
-            <nav className="flex space-x-8" aria-label="Tabs">
+            <nav className="flex space-x-1" aria-label="Tabs">
                 {tabs.map((tab) => (
-                    <button
+                    <DynamicTab
                         key={tab.id}
-                        onClick={() => handleTabClick(tab.id)}
-                        className={`
-              whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200
-              ${currentTab === tab.id
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }
-            `}
-                        aria-current={currentTab === tab.id ? 'page' : undefined}
-                    >
-                        {tab.label}
-                    </button>
+                        id={tab.id}
+                        label={tab.label}
+                        isActive={activeTab === tab.id}
+                        isClosable={tab.isClosable}
+                        onTabClick={handleTabClick}
+                        onTabClose={handleCloseTab}
+                    />
                 ))}
             </nav>
         </div>
     );
 }
-
-// 기본 탭 데이터 예시
-export const defaultTabs: TabItem[] = [
-    { id: 'overview', label: '개요' },
-    { id: 'analytics', label: '분석' },
-    { id: 'reports', label: '보고서' },
-    { id: 'settings', label: '설정' }
-];

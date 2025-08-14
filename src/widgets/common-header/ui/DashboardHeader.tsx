@@ -7,6 +7,7 @@ import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { useAuthStore } from "@/shared/store/authStore";
+import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,6 +22,7 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
+    const addTab = useTabStore((s) => s.addTab);
 
     const activeTopNo = useMemo(
         () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
@@ -30,11 +32,24 @@ export default function DashboardHeader() {
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정
         setFilteredTop(menuNo);
-        
+
         // 항상 사이드바 이벤트 발생 (메뉴 펼치기 용)
         if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo } }));
         }
+
+        // 탭 추가 (Zustand 스토어 사용)
+        const headerMenu = headerMenus.find(menu => menu.menuNo === menuNo);
+        if (headerMenu) {
+            addTab({
+                id: headerMenu.menuNo,
+                label: headerMenu.label,
+                href: headerMenu.href,
+                menuNo: headerMenu.menuNo,
+                isClosable: true
+            });
+        }
+
         // href가 있으면 페이지 이동
         if (href && href.trim() !== "") {
             router.push(href);
@@ -45,10 +60,10 @@ export default function DashboardHeader() {
         try {
             // NextAuth 세션 종료
             await signOut({ redirect: false });
-            
+
             // Zustand 상태 초기화
             logout();
-            
+
             // 로그인 페이지로 이동
             router.push('/');
         } catch (error) {
@@ -64,7 +79,7 @@ export default function DashboardHeader() {
             <nav className="flex items-center justify-between px-6 py-3">
                 {/* 로고/브랜드 영역 */}
                 <div className="flex items-center gap-3">
-                    <button 
+                    <button
                         onClick={() => router.push('/dashboard')}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-2 py-1"
                     >
@@ -83,44 +98,41 @@ export default function DashboardHeader() {
                             <button
                                 key={m.menuNo}
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
-                                className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${
-                                    isActive
+                                className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${isActive
                                         ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200"
                                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95"
                                     }`}
                                 title={m.label}
                             >
                                 {/* 아이콘 컨테이너 */}
-                                <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
-                                    isActive 
-                                        ? "bg-blue-100" 
+                                <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${isActive
+                                        ? "bg-blue-100"
                                         : "bg-gray-100 group-hover:bg-gray-200"
-                                }`}>
+                                    }`}>
                                     {m.iconUrl ? (
-                                        <Image 
-                                            src={m.iconUrl} 
-                                            alt={`${m.label} 아이콘`} 
-                                            width={18} 
-                                            height={18} 
+                                        <Image
+                                            src={m.iconUrl}
+                                            alt={`${m.label} 아이콘`}
+                                            width={18}
+                                            height={18}
                                             className={`transition-opacity ${isActive ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
                                         />
                                     ) : (
                                         <div className={`w-4 h-4 rounded-sm ${isActive ? "bg-blue-400" : "bg-gray-400"}`} />
                                     )}
                                 </div>
-                                
+
                                 {/* 텍스트 */}
                                 <span className="font-medium">{m.label}</span>
-                                
+
                                 {/* 활성 상태 인디케이터 */}
                                 {isActive && (
                                     <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-500 rounded-full" />
                                 )}
-                                
+
                                 {/* 호버 효과 */}
-                                <div className={`absolute inset-0 rounded-lg transition-opacity ${
-                                    isActive ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
-                                }`} />
+                                <div className={`absolute inset-0 rounded-lg transition-opacity ${isActive ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
+                                    }`} />
                             </button>
                         );
                     })}
@@ -168,7 +180,7 @@ export default function DashboardHeader() {
                                 도움말
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                                 onClick={handleLogout}
                                 className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
                             >
