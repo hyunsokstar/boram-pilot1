@@ -47,9 +47,9 @@ function findBestMatchByPath(path: string) {
 
 export const useNavStore = create<NavState>((set) => ({
   expanded: new Set<string>(["MNU100"]),
-  activeTopNo: null,
+  activeTopNo: "MNU100", // 초기값: 조직/사원
   activeLeafNo: null,
-  filteredTopNo: null,
+  filteredTopNo: "MNU100", // 초기값: 조직/사원 필터링
 
   toggle: (menuNo) =>
     set((s) => {

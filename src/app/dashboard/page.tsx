@@ -1,4 +1,15 @@
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 export default function Dashboard() {
+    const router = useRouter();
+
+    useEffect(() => {
+        // 대시보드 첫 진입시 조직관리 페이지로 리다이렉트
+        router.push("/dashboard/organization");
+    }, [router]);
+
     return (
         <section className="flex-1 p-8 bg-slate-50">
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
