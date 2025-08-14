@@ -33,7 +33,9 @@ function findBestMatchByPath(path: string) {
       expandChain = nextChain;
     }
 
-    node.subMenu?.forEach((child) => dfs(child, nextChain, depth + 1));
+    if (node.subMenu) {
+      node.subMenu.forEach((child) => dfs(child, nextChain, depth + 1));
+    }
   };
 
   sideMenus.forEach((top) => dfs(top, [], 0));
@@ -49,7 +51,11 @@ export const useNavStore = create<NavState>((set) => ({
   toggle: (menuNo) =>
     set((s) => {
       const next = new Set(s.expanded);
-      next.has(menuNo) ? next.delete(menuNo) : next.add(menuNo);
+      if (next.has(menuNo)) {
+        next.delete(menuNo);
+      } else {
+        next.add(menuNo);
+      }
       return { expanded: next };
     }),
 

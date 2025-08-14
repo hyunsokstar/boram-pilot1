@@ -259,10 +259,7 @@ export const sideMenus: SideMenuItem[] = [
   }
 ];
 
-// 펼침만 하는 최상위
-export const openOnlyTopMenuNos = new Set<string>(["MNU900"]);
-
-// 최초 이동 경로
+// 최초 이동 경로 (최하위 페이지 찾기)
 export const firstLeafHref = (menu: SideMenuItem): string => {
   const q: SideMenuItem[] = [menu];
   while (q.length) {
@@ -280,13 +277,13 @@ export const findTopByPath = (path: string): SideMenuItem | undefined => {
   return sideMenus.find(contains);
 };
 
-// 헤더 메뉴(아이콘 포함)
+// 헤더 메뉴(아이콘 포함) - 모든 최상위 메뉴는 첫 번째 하위 페이지로 이동
 export const headerMenus: HeaderMenuItem[] = sideMenus
   .filter(m => m.menuLevelCd === "1")
   .map(m => ({
     id: m.menuNo,
     label: m.menuNm,
-    href: openOnlyTopMenuNos.has(m.menuNo) ? "" : (m.menuHref?.trim() || firstLeafHref(m)),
+    href: m.menuHref?.trim() || firstLeafHref(m),
     menuNo: m.menuNo,
     iconUrl: m.menuIconUrl || undefined
   }));

@@ -1,11 +1,11 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
-import { findTopByPath } from "@/shared/config/common-nav-menus"; // ← 공통 유틸 사용
+import { findTopByPath } from "@/shared/config/common-nav-menus";
 
 export default function DashboardHeader() {
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
@@ -15,10 +15,14 @@ export default function DashboardHeader() {
     );
 
     const onHeaderClick = (menuNo: string, href: string) => {
+        // 항상 사이드바 이벤트 발생 (메뉴 펼치기 용)
         if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo } }));
         }
-        if (href) router.push(href);
+        // href가 있으면 페이지 이동
+        if (href && href.trim() !== "") {
+            router.push(href);
+        }
     };
 
     return (
@@ -37,7 +41,7 @@ export default function DashboardHeader() {
                             title={m.label}
                         >
                             {m.iconUrl ? (
-                                <img src={m.iconUrl} alt="" className="w-5 h-5 opacity-90" />
+                                <Image src={m.iconUrl} alt="" width={20} height={20} className="opacity-90" />
                             ) : (
                                 <span className="w-5 h-5" />
                             )}
