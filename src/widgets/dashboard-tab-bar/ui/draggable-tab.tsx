@@ -8,6 +8,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { TabArea } from '../model/types';
 
 /**
  * 드래그 가능한 탭 컴포넌트의 Props
@@ -25,6 +26,8 @@ interface DraggableTabProps {
     onTabClick: (tabId: string) => void;
     /** 탭 닫기 핸들러 */
     onTabClose?: (tabId: string) => void;
+    /** 탭이 속한 영역 (TabGroup에서 사용) */
+    area?: TabArea;
 }
 
 /**
@@ -52,7 +55,8 @@ export default function DraggableTab({
     isActive,
     isClosable = true,
     onTabClick,
-    onTabClose
+    onTabClose,
+    area
 }: DraggableTabProps) {
     // dnd-kit의 sortable 훅 사용
     const {
@@ -62,7 +66,12 @@ export default function DraggableTab({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id });
+    } = useSortable({ 
+        id,
+        data: {
+            area: area, // 영역 정보를 data로 전달
+        }
+    });
 
     // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
     const style = {

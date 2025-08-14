@@ -4,8 +4,19 @@
  */
 
 export { default as TabBar } from './ui/tab-bar';
+export { default as TabGroup } from './ui/tab-group';
 export { default as DynamicTab } from './ui/dynamic-tab';
 export { default as DraggableTab } from './ui/draggable-tab';
 export type { TabItem, TabBarProps } from './ui/tab-bar';
+export type { TabGroupProps } from './ui/tab-group';
 export { useTabStore } from './model/tabStore';
-export type { DynamicTab as DynamicTabType, TabBarState, TabActions, DragEndEvent } from './model/types';
+export type { 
+    DynamicTab as DynamicTabType, 
+    TabBarState, 
+    TabActions, 
+    DragEndEvent,
+    TabArea,
+    SplitMode,
+    TabAreas,
+    TabGroupState
+} from './model/types';

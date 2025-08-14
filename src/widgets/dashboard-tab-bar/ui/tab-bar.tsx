@@ -26,6 +26,7 @@ import {
 
 import DraggableTab from './draggable-tab';
 import type { DragEndEvent } from '@dnd-kit/core';
+import type { TabArea } from '../model/types';
 
 /**
  * 탭바에서 사용하는 탭 아이템 타입
@@ -46,13 +47,15 @@ export interface TabBarProps {
     /** 표시할 탭들 */
     tabs: TabItem[];
     /** 현재 활성화된 탭 ID */
-    activeTab?: string;
+    activeTab?: string | null;
     /** 탭 클릭 핸들러 */
     onTabChange?: (tabId: string) => void;
     /** 탭 닫기 핸들러 */
     onTabClose?: (tabId: string) => void;
     /** 탭 순서 변경 핸들러 */
     onTabReorder?: (sourceIndex: number, destinationIndex: number) => void;
+    /** 탭이 속한 영역 (TabGroup에서 사용) */
+    area?: TabArea;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -83,6 +86,7 @@ export default function TabBar({
     onTabChange,
     onTabClose,
     onTabReorder,
+    area,
     className = ""
 }: TabBarProps) {
     // 드래그 센서 설정 - 더 부드러운 드래그를 위한 최적화
@@ -169,6 +173,7 @@ export default function TabBar({
                                 isClosable={tab.isClosable}
                                 onTabClick={handleTabClick}
                                 onTabClose={handleCloseTab}
+                                area={area}
                             />
                         ))}
                     </nav>
