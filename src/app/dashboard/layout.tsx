@@ -2,13 +2,13 @@
 
 import type { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
 import { TabBar } from "@/widgets/dashboard-tab-bar";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
-import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
+import { NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 

@@ -1,1 +1,1 @@
-export { default } from "./ui/DashboardHeader";
+export { default } from "./DashboardHeader";
