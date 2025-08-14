@@ -1,114 +1,173 @@
 "use client";
-import { useState, useCallback } from "react";
+
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
+import { NAV_OPEN_TOP_EVENT, type NavOpenTopDetail } from "@/shared/config/common-nav-menus";
+import { sideMenus, type SideMenuItem as SideMenu } from "@/shared/config/side-menus";
+import { useNavStore } from "@/shared/store/navStore";
 import { Resizable } from "re-resizable";
-import { sideMenuStructure, type SideMenu } from "@/shared/config/side-menu-structure";
 
 export default function DashboardSidebar() {
-    const [expandedMenus, setExpandedMenus] = useState<string[]>(["MNU100"]); // 조직/사원 기본 확장
+    const pathname = usePathname();
+
+    // zustand
+    const expandedSet = useNavStore((s) => s.expanded);
+    const activeLeafNo = useNavStore((s) => s.activeLeafNo);
+    const toggle = useNavStore((s) => s.toggle);
+    const openTop = useNavStore((s) => s.openTop);
+    const setFromPath = useNavStore((s) => s.setFromPath);
+
+    // UI
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [sidebarWidth, setSidebarWidth] = useState(304); // 48 (토글) + 256 (메인)
+    const [sidebarWidth, setSidebarWidth] = useState(304);
+    const expandedMenus = useMemo(() => Array.from(expandedSet), [expandedSet]);
 
-    const toggleMenu = (menuNo: string) => {
-        setExpandedMenus(prev =>
-            prev.includes(menuNo)
-                ? prev.filter(no => no !== menuNo)
-                : [...prev, menuNo]
-        );
-    };
+    // 헤더 클릭 시 강조용(일시적 하이라이트)
+    const [highlightTopNo, setHighlightTopNo] = useState<string | null>(null);
+    const topRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    const handleResize = useCallback((
-        _e: MouseEvent | TouchEvent,
-        _direction: string,
-        ref: HTMLElement
-    ) => {
-        // 현재 실제 너비를 직접 가져옴
-        const currentWidth = ref.offsetWidth;
-        setSidebarWidth(currentWidth);
+    // 경로 → 활성/확장 동기화
+    useEffect(() => {
+        if (pathname) setFromPath(pathname);
+    }, [pathname, setFromPath]);
 
-        // 너무 작으면 자동으로 collapse
-        if (currentWidth < 100) {
-            setIsCollapsed(true);
-        } else {
-            setIsCollapsed(false);
-        }
+    // 헤더 → 사이드: 최상위 확장 + 강조 + 스크롤
+    useEffect(() => {
+        let timeoutId: number | undefined;
+        const handler = (e: Event) => {
+            const { menuNo } = (e as CustomEvent<NavOpenTopDetail>).detail || {};
+            if (!menuNo) return;
+            openTop(menuNo);
+            setHighlightTopNo(menuNo);
+            const el = topRefs.current[menuNo];
+            if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+            timeoutId = window.setTimeout(() => setHighlightTopNo((v) => (v === menuNo ? null : v)), 1200);
+        };
+        window.addEventListener(NAV_OPEN_TOP_EVENT, handler as EventListener);
+        return () => {
+            window.removeEventListener(NAV_OPEN_TOP_EVENT, handler as EventListener);
+            if (timeoutId) window.clearTimeout(timeoutId);
+        };
+    }, [openTop]);
+
+    const handleResize = useCallback((_e: any, _d: any, ref: HTMLElement) => {
+        const w = ref.offsetWidth;
+        setSidebarWidth(w);
+        setIsCollapsed(w < 100);
+    }, []);
+    const handleResizeStop = useCallback((_e: any, _d: any, ref: HTMLElement) => {
+        setSidebarWidth(ref.offsetWidth);
     }, []);
 
-    const handleResizeStop = useCallback((
-        _e: MouseEvent | TouchEvent,
-        _direction: string,
-        ref: HTMLElement
-    ) => {
-        // 최종 크기 설정
-        const finalWidth = ref.offsetWidth;
-        setSidebarWidth(finalWidth);
-    }, []);
+    // 하위에 활성 leaf가 있는지
+    const hasActiveDescendant = useCallback((node: SideMenu): boolean => {
+        if (!node.subMenu?.length) return node.menuNo === activeLeafNo;
+        return node.subMenu.some((c) => hasActiveDescendant(c));
+    }, [activeLeafNo]);
 
-    // 메뉴 렌더링 컴포넌트
     const renderMenu = (menu: SideMenu, level = 0) => {
-        const hasSubMenu = menu.subMenu && menu.subMenu.length > 0;
-        const isExpanded = expandedMenus.includes(menu.menuNo);
-        const paddingLeft = level * 16 + 8; // 레벨별 들여쓰기
+        const isTop = level === 0;
+        const hasSubMenu = !!menu.subMenu?.length;
+        const isExpanded = expandedSet.has(menu.menuNo);
+        const isActiveLeaf = !hasSubMenu && !isTop && activeLeafNo === menu.menuNo;
+        const branchHasActive = hasActiveDescendant(menu);
+        const paddingLeft = level * 16 + 8;
+
+        // 최상위 + 하위 없음인 경우 현재 경로로 활성 판단
+        const isActiveTopLabel = isTop && !hasSubMenu && !!menu.menuHref && !!pathname && pathname.startsWith(menu.menuHref);
 
         return (
-            <div key={menu.menuNo} className="mb-1">
-                {hasSubMenu ? (
-                    // 하위 메뉴가 있는 경우 (토글 버튼)
+            <div
+                key={menu.menuNo}
+                ref={isTop ? (el) => { topRefs.current[menu.menuNo] = el; } : undefined}
+                className="mb-1"
+            >
+                {/* 1) 최상위 + 하위 있음 → 토글 버튼 */}
+                {isTop && hasSubMenu ? (
                     <button
-                        onClick={() => toggleMenu(menu.menuNo)}
-                        className="w-full flex items-center justify-between p-2 text-left hover:bg-slate-700 rounded text-sm"
-                        style={{ paddingLeft: `${paddingLeft}px` }}
+                        onClick={() => toggle(menu.menuNo)}
+                        className={`w-full flex items-center justify-between p-2 text-left rounded text-sm transition-colors hover:bg-slate-700
+                        ${highlightTopNo === menu.menuNo ? "ring-2 ring-indigo-400/60" : ""}`}
+                        style={{ paddingLeft }}
+                        aria-expanded={isExpanded}
                     >
                         <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                            </svg>
-                            <span className="font-medium text-gray-200">{menu.menuNm}</span>
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${branchHasActive ? "bg-indigo-400" : "bg-gray-400"}`} />
+                            <span className="font-medium text-white">{menu.menuNm}</span>
                         </div>
                         <svg
-                            className={`w-4 h-4 transition-transform text-gray-400 ${isExpanded ? 'rotate-90' : ''}`}
+                            className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90 text-gray-100" : "text-gray-400"}`}
                             fill="currentColor"
                             viewBox="0 0 20 20"
                         >
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
                     </button>
-                ) : (
-                    // 하위 메뉴가 없는 경우 (링크)
-                    <a
-                        href={menu.menuHref}
-                        className="block w-full p-2 text-left hover:bg-slate-700 rounded text-sm text-gray-300 hover:text-white transition-colors"
-                        style={{ paddingLeft: `${paddingLeft}px` }}
+                ) : null}
+
+                {/* 2) 최상위 + 하위 없음 → 페이지 라벨 (선택 부각) */}
+                {isTop && !hasSubMenu ? (
+                    <div
+                        className={`w-full flex items-center p-2 rounded text-sm select-none transition-colors ${isActiveTopLabel
+                                ? "bg-slate-700/80 text-white font-semibold border-l-3 border-indigo-400 shadow-md"
+                                : "text-white hover:bg-slate-700/40"
+                            } ${highlightTopNo === menu.menuNo ? "ring-2 ring-indigo-400/60" : ""}`}
+                        style={{ paddingLeft }}
+                        aria-current={isActiveTopLabel ? "page" : undefined}
+                    >
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActiveTopLabel ? "bg-indigo-400" : "bg-gray-400"} mr-2`} />
+                        <span className="font-medium">{menu.menuNm}</span>
+                    </div>
+                ) : null}
+
+                {/* 3) 중간 브랜치 → 토글 버튼 */}
+                {!isTop && hasSubMenu ? (
+                    <button
+                        onClick={() => toggle(menu.menuNo)}
+                        className="w-full flex items-center justify-between p-2 text-left rounded text-sm transition-colors hover:bg-slate-700"
+                        style={{ paddingLeft }}
+                        aria-expanded={isExpanded}
                     >
                         <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${branchHasActive ? "bg-indigo-400" : "bg-gray-400"}`} />
+                            <span className="font-medium text-gray-200">{menu.menuNm}</span>
+                        </div>
+                        <svg
+                            className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90 text-gray-100" : "text-gray-400"}`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                ) : null}
+
+                {/* 4) 리프 메뉴 → 링크 */}
+                {!hasSubMenu && !isTop ? (
+                    <a
+                        href={menu.menuHref}
+                        aria-current={isActiveLeaf ? "page" : undefined}
+                        className={`block w-full p-2 text-left rounded text-sm transition-colors ${isActiveLeaf
+                                ? "bg-slate-700 text-white font-medium border-l-2 border-indigo-400"
+                                : "text-gray-300 hover:text-white hover:bg-slate-700"
+                            }`}
+                        style={{ paddingLeft }}
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActiveLeaf ? "bg-indigo-400" : "bg-gray-500"}`} />
                             <span>{menu.menuNm}</span>
                         </div>
                     </a>
-                )}
+                ) : null}
 
-                {/* 하위 메뉴 렌더링 */}
+                {/* 자식 렌더링 */}
                 {hasSubMenu && isExpanded && (
                     <div className="mt-1">
-                        {menu.subMenu.map(subMenu => renderMenu(subMenu, level + 1))}
+                        {menu.subMenu!.map((sub) => renderMenu(sub, level + 1))}
                     </div>
                 )}
             </div>
         );
-    };
-
-    const toggleSidebar = () => {
-        setIsCollapsed(prev => {
-            const newCollapsed = !prev;
-            // 토글 시 전체 사이드바 크기도 조정
-            if (newCollapsed) {
-                setSidebarWidth(48); // 토글 버튼만
-            } else {
-                setSidebarWidth(304); // 토글 + 메인 영역
-            }
-            return newCollapsed;
-        });
     };
 
     return (
@@ -116,44 +175,24 @@ export default function DashboardSidebar() {
             size={{ width: sidebarWidth, height: "100%" }}
             onResize={handleResize}
             onResizeStop={handleResizeStop}
-            minWidth={48} // 토글 버튼만
+            minWidth={48}
             maxWidth={500}
-            enable={{
-                top: false,
-                right: true,
-                bottom: false,
-                left: false,
-                topRight: false,
-                bottomRight: false,
-                bottomLeft: false,
-                topLeft: false,
-            }}
-            handleStyles={{
-                right: {
-                    width: '6px',
-                    backgroundColor: 'rgba(148, 163, 184, 0.3)',
-                    cursor: 'col-resize',
-                    borderRadius: '0 4px 4px 0',
-                    zIndex: 10,
-                },
-            }}
-            handleClasses={{
-                right: 'hover:bg-slate-400 transition-colors duration-200',
-            }}
+            enable={{ top: false, right: true, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false }}
+            handleStyles={{ right: { width: "6px", backgroundColor: "rgba(148,163,184,0.3)", cursor: "col-resize", borderRadius: "0 4px 4px 0", zIndex: 10 } }}
+            handleClasses={{ right: "hover:bg-slate-400 transition-colors duration-200" }}
         >
             <div className="flex h-full min-h-0">
-                {/* Toggle Button - Far Left */}
                 <div className="w-12 bg-slate-700 flex flex-col h-full min-h-0">
                     <button
-                        onClick={toggleSidebar}
+                        onClick={() => setIsCollapsed((prev) => {
+                            const next = !prev;
+                            setSidebarWidth(next ? 48 : 304);
+                            return next;
+                        })}
                         className="p-3 text-white hover:bg-slate-600 transition-colors flex items-center justify-center flex-shrink-0"
                         aria-label="사이드바 토글"
                     >
-                        <svg
-                            className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
+                        <svg className={`w-5 h-5 transition-transform ${isCollapsed ? "rotate-180" : ""}`} fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                     </button>
@@ -180,21 +219,17 @@ export default function DashboardSidebar() {
                     </div>
                 </div>
 
-                {/* Main Sidebar Content */}
                 <aside
-                    className={`${isCollapsed ? 'w-0' : 'flex-1'} transition-all duration-300 bg-slate-800 text-white flex flex-col h-full min-h-0 overflow-hidden`}
-                    style={{ width: isCollapsed ? '0px' : `${sidebarWidth - 48}px` }}
+                    className={`${isCollapsed ? "w-0" : "flex-1"} transition-all duration-300 bg-slate-800 text-white flex flex-col h-full min-h-0 overflow-hidden`}
+                    style={{ width: isCollapsed ? "0px" : `${sidebarWidth - 48}px` }}
                 >
                     {!isCollapsed && (
                         <>
-                            {/* Header */}
                             <div className="p-4 border-b border-slate-600 flex-shrink-0">
                                 <h2 className="text-lg font-semibold text-gray-100">메뉴</h2>
                             </div>
-
-                            {/* Sidebar Menu */}
                             <div className="flex-1 p-3 overflow-y-auto min-h-0">
-                                {sideMenuStructure.map(menu => renderMenu(menu))}
+                                {sideMenus.map((top) => renderMenu(top as SideMenu, 0))}
                             </div>
                         </>
                     )}
