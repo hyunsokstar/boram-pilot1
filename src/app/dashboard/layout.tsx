@@ -72,23 +72,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const currentTabAreas = useMemo<TabAreas>(() => {
         // 영역 상태가 비어있으면 모든 탭을 left 영역에 배치
         const hasAnyTabs = tabAreas.left.length > 0 || tabAreas.center.length > 0 || tabAreas.right.length > 0;
-        
+
         if (!hasAnyTabs) {
             return {
-                left: tabs,
+                left: tabs || [],
                 center: [],
                 right: []
             };
         }
-        
+
         // 기존 영역 상태 유지하되, 스토어에만 있고 영역에 없는 새 탭들을 left에 추가
-        const allAreaTabs = [...tabAreas.left, ...tabAreas.center, ...tabAreas.right];
-        const newTabs = tabs.filter(tab => !allAreaTabs.some(areaTab => areaTab.id === tab.id));
-        
+        const safeTabAreas = {
+            left: tabAreas.left || [],
+            center: tabAreas.center || [],
+            right: tabAreas.right || []
+        };
+
+        const allAreaTabs = [...safeTabAreas.left, ...safeTabAreas.center, ...safeTabAreas.right];
+        const newTabs = (tabs || []).filter(tab =>
+            tab && tab.id && !allAreaTabs.some(areaTab => areaTab && areaTab.id === tab.id)
+        );
+
         return {
-            left: [...tabAreas.left, ...newTabs],
-            center: tabAreas.center,
-            right: tabAreas.right
+            left: [...safeTabAreas.left, ...newTabs],
+            center: safeTabAreas.center,
+            right: safeTabAreas.right
         };
     }, [tabs, tabAreas]);
 
@@ -124,6 +132,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const position = over.data.current.position as DropPosition;
             console.log('드롭존 호버:', position);
             setActiveDropZone(position);
+        } else if (over?.data?.current?.type === 'tab-area') {
+            const area = over.data.current.area as TabArea;
+            console.log('탭바 영역 호버:', area);
+            // 탭바 영역에 대한 시각적 피드백은 TabBar 컴포넌트에서 isOver로 처리
+            setActiveDropZone(null);
         } else {
             setActiveDropZone(null);
         }
@@ -146,6 +159,46 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         // 탭이 아닌 경우 무시
         if (activeData.type !== 'tab') return;
 
+        console.log('handleDragEnd:', { draggedTabId, overType: over.data?.current?.type, overId: over.id });
+
+        // SortableContext 내부의 순서 변경인지 확인
+        // (같은 영역 내에서 탭끼리 드래그한 경우)
+        if (over.data?.current?.type === 'tab' && activeData.area) {
+            const targetTabId = String(over.id);
+            const targetData = over.data.current;
+
+            // 같은 영역인지 확인
+            if (activeData.area === targetData.area) {
+                console.log('같은 영역 내 순서 변경 - SortableContext에 위임:', {
+                    draggedTabId,
+                    targetTabId,
+                    area: activeData.area
+                });
+
+                // 같은 영역 내 순서 변경은 SortableContext가 자동으로 처리하도록 하고
+                // 우리는 상태만 업데이트
+                const area = activeData.area as TabArea;
+                const areaItems = [...(currentTabAreas[area] || [])];
+                const oldIndex = areaItems.findIndex(tab => tab && tab.id === draggedTabId);
+                const newIndex = areaItems.findIndex(tab => tab && tab.id === targetTabId);
+
+                if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                    console.log('상태 업데이트만 실행:', { oldIndex, newIndex, area });
+
+                    // 배열 순서 변경
+                    const [movedTab] = areaItems.splice(oldIndex, 1);
+                    areaItems.splice(newIndex, 0, movedTab);
+
+                    // 상태 업데이트
+                    setTabAreas(prev => ({
+                        ...prev,
+                        [area]: areaItems
+                    }));
+                }
+                return;
+            }
+        }
+
         // 드롭존에 드롭된 경우
         if (over.data?.current?.type === 'dropzone') {
             const position = over.data.current.position as DropPosition;
@@ -154,43 +207,80 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
 
-        // 다른 탭에 드롭된 경우 (순서 변경)
+        // 탭바 영역에 드롭된 경우
+        if (over.data?.current?.type === 'tab-area') {
+            const targetArea = over.data.current.area as TabArea;
+            console.log('탭바 영역에 드롭:', targetArea, '탭:', draggedTabId);
+            handleTabAreaDrop(draggedTabId, targetArea);
+            return;
+        }
+
+        // 다른 탭에 드롭된 경우 (다른 영역으로 이동)
         if (over.data?.current?.type === 'tab') {
             const targetTabId = String(over.id);
-            const allTabs = [...currentTabAreas.left, ...currentTabAreas.center, ...currentTabAreas.right];
+            const targetData = over.data.current;
 
-            const draggedTab = allTabs.find(t => t.id === draggedTabId);
-            const targetTab = allTabs.find(t => t.id === targetTabId);
-
-            if (!draggedTab || !targetTab) return;
-
-            // 탭 영역 찾기
-            const fromArea = currentTabAreas.left.find(t => t.id === draggedTabId) ? 'left' :
-                currentTabAreas.center.find(t => t.id === draggedTabId) ? 'center' : 'right';
-            const toArea = currentTabAreas.left.find(t => t.id === targetTabId) ? 'left' :
-                currentTabAreas.center.find(t => t.id === targetTabId) ? 'center' : 'right';
-
-            if (fromArea === toArea) {
-                // 같은 영역 내 순서 변경
-                const areaItems = currentTabAreas[fromArea as TabArea];
-                const oldIndex = areaItems.findIndex(tab => tab.id === draggedTabId);
-                const newIndex = areaItems.findIndex(tab => tab.id === targetTabId);
-                if (oldIndex !== -1 && newIndex !== -1) {
-                    handleTabReorder(oldIndex, newIndex, fromArea as TabArea);
-                }
-            } else {
-                // 다른 영역으로 이동
-                const targetAreaItems = currentTabAreas[toArea as TabArea];
-                const targetIndex = targetAreaItems.findIndex(tab => tab.id === targetTabId);
-                handleTabMove(draggedTabId, fromArea as TabArea, toArea as TabArea, targetIndex);
+            // 같은 탭에 드롭한 경우 무시
+            if (draggedTabId === targetTabId) {
+                console.log('같은 탭에 드롭, 무시');
+                return;
             }
+
+            // 같은 영역인 경우는 이미 위에서 처리했으므로 무시
+            if (activeData.area === targetData.area) {
+                console.log('같은 영역 내 순서 변경은 이미 처리됨');
+                return;
+            }
+
+            console.log('다른 영역으로 탭 이동:', {
+                draggedTabId,
+                targetTabId,
+                fromArea: activeData.area,
+                toArea: targetData.area
+            });
+
+            const allTabs = [
+                ...(currentTabAreas.left || []),
+                ...(currentTabAreas.center || []),
+                ...(currentTabAreas.right || [])
+            ].filter(tab => tab && tab.id);
+
+            const draggedTab = allTabs.find(t => t && t.id === draggedTabId);
+            const targetTab = allTabs.find(t => t && t.id === targetTabId);
+
+            if (!draggedTab || !targetTab) {
+                console.log('탭을 찾을 수 없음:', { draggedTab, targetTab });
+                return;
+            }
+
+            // 탭 영역 찾기 - 안전한 접근
+            const fromArea = (currentTabAreas.left || []).find(t => t && t.id === draggedTabId) ? 'left' :
+                (currentTabAreas.center || []).find(t => t && t.id === draggedTabId) ? 'center' : 'right';
+            const toArea = (currentTabAreas.left || []).find(t => t && t.id === targetTabId) ? 'left' :
+                (currentTabAreas.center || []).find(t => t && t.id === targetTabId) ? 'center' : 'right';
+
+            // 다른 영역으로 이동 - 타겟 탭 위치에 삽입
+            const targetAreaItems = currentTabAreas[toArea as TabArea] || [];
+            const targetIndex = targetAreaItems.findIndex(tab => tab && tab.id === targetTabId);
+
+            console.log('다른 영역 이동:', { fromArea, toArea, targetIndex });
+
+            handleTabMove(draggedTabId, fromArea as TabArea, toArea as TabArea, targetIndex);
         }
     };
     // 탭 클릭 핸들러
     const handleTabChange = (tabId: string, area: TabArea) => {
-        const allTabs = [...currentTabAreas.left, ...currentTabAreas.center, ...currentTabAreas.right];
-        const selectedTab = allTabs.find(tab => tab.id === tabId);
-        if (!selectedTab) return;
+        const allTabs = [
+            ...(currentTabAreas.left || []),
+            ...(currentTabAreas.center || []),
+            ...(currentTabAreas.right || [])
+        ].filter(tab => tab && tab.id);
+
+        const selectedTab = allTabs.find(tab => tab && tab.id === tabId);
+        if (!selectedTab) {
+            console.log('선택된 탭을 찾을 수 없음:', tabId);
+            return;
+        }
 
         setActiveTab(tabId);
         setFilteredTop(selectedTab.menuNo || '');
@@ -206,17 +296,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 탭 순서 변경 핸들러
     const handleTabReorder = (sourceIndex: number, destinationIndex: number, area: TabArea) => {
-        if (area === 'left' && currentTabAreas.left.length === tabs.length) {
+        console.log('handleTabReorder 호출:', { sourceIndex, destinationIndex, area });
+
+        if (area === 'left' && (currentTabAreas.left || []).length === (tabs || []).length &&
+            (currentTabAreas.center || []).length === 0 && (currentTabAreas.right || []).length === 0) {
             // 초기 상태에서는 기존 스토어 사용
+            console.log('스토어 순서 변경 사용');
             reorderTabs(sourceIndex, destinationIndex);
         } else {
             // 분할된 상태에서는 영역별 관리
+            console.log('영역별 순서 변경 사용');
             setTabAreas(prev => {
                 const newAreas = { ...prev };
-                const areaItems = [...newAreas[area]];
-                const [removed] = areaItems.splice(sourceIndex, 1);
-                areaItems.splice(destinationIndex, 0, removed);
-                newAreas[area] = areaItems;
+                const areaItems = [...(newAreas[area] || [])];
+
+                if (sourceIndex >= 0 && sourceIndex < areaItems.length &&
+                    destinationIndex >= 0 && destinationIndex < areaItems.length) {
+                    const [removed] = areaItems.splice(sourceIndex, 1);
+                    areaItems.splice(destinationIndex, 0, removed);
+                    newAreas[area] = areaItems;
+
+                    console.log('순서 변경 완료:', {
+                        area,
+                        oldOrder: prev[area]?.map(t => t.label),
+                        newOrder: areaItems.map(t => t.label)
+                    });
+                } else {
+                    console.log('잘못된 인덱스:', { sourceIndex, destinationIndex, length: areaItems.length });
+                }
+
                 return newAreas;
             });
         }
@@ -224,24 +332,81 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 탭을 다른 영역으로 이동
     const handleTabMove = (tabId: string, fromArea: TabArea, toArea: TabArea, targetIndex?: number) => {
+        console.log('handleTabMove 호출:', { tabId, fromArea, toArea, targetIndex });
+
         setTabAreas(prev => {
             const newAreas = { ...prev };
 
             // 원본 영역에서 탭 제거
-            const movingTab = newAreas[fromArea].find(tab => tab.id === tabId);
-            if (!movingTab) return prev;
+            const movingTab = (newAreas[fromArea] || []).find(tab => tab && tab.id === tabId);
+            if (!movingTab) {
+                console.log('이동할 탭을 찾을 수 없음:', tabId);
+                return prev;
+            }
 
-            newAreas[fromArea] = newAreas[fromArea].filter(tab => tab.id !== tabId);
+            newAreas[fromArea] = (newAreas[fromArea] || []).filter(tab => tab && tab.id !== tabId);
 
             // 목표 영역에 탭 추가
-            if (targetIndex !== undefined) {
-                newAreas[toArea].splice(targetIndex, 0, movingTab);
+            if (targetIndex !== undefined && targetIndex >= 0) {
+                // 특정 위치에 삽입
+                const targetAreaItems = [...(newAreas[toArea] || [])];
+                targetAreaItems.splice(targetIndex, 0, movingTab);
+                newAreas[toArea] = targetAreaItems;
+                console.log('특정 위치에 탭 삽입:', { targetIndex, newLength: targetAreaItems.length });
             } else {
-                newAreas[toArea].push(movingTab);
+                // 마지막에 추가
+                newAreas[toArea] = [...(newAreas[toArea] || []), movingTab];
+                console.log('마지막에 탭 추가');
             }
 
             return newAreas;
         });
+    };
+
+    // 탭바 영역에 탭 드롭 핸들러 (빈 영역에 드롭할 때)
+    const handleTabAreaDrop = (tabId: string, targetArea: TabArea) => {
+        console.log('탭바 영역 드롭 처리:', { tabId, targetArea });
+
+        const allTabs = [...(currentTabAreas.left || []), ...(currentTabAreas.center || []), ...(currentTabAreas.right || [])];
+        const tab = allTabs.find(t => t && t.id === tabId);
+        if (!tab) {
+            console.log('탭을 찾을 수 없음:', tabId);
+            return;
+        }
+
+        // 현재 탭이 어느 영역에 있는지 찾기
+        const currentArea = (currentTabAreas.left || []).find(t => t && t.id === tabId) ? 'left' :
+            (currentTabAreas.center || []).find(t => t && t.id === tabId) ? 'center' : 'right';
+
+        console.log('탭 영역 이동:', { from: currentArea, to: targetArea });
+
+        // 같은 영역이면 순서 변경 없이 그냥 반환
+        if (currentArea === targetArea) {
+            console.log('같은 영역으로 드롭, 무시');
+            return;
+        }
+
+        // 목표 영역에 따라 분할 모드 자동 조정
+        if (targetArea === 'center' && splitMode !== 'triple') {
+            setSplitMode('triple');
+        } else if ((targetArea === 'left' || targetArea === 'right') && splitMode === 'single') {
+            setSplitMode('double');
+        }
+
+        // 탭 이동
+        setTabAreas(prev => {
+            const newAreas = { ...prev };
+            // 원본 영역에서 탭 제거
+            newAreas[currentArea] = (newAreas[currentArea] || []).filter(t => t && t.id !== tabId);
+            // 목표 영역에 탭 추가 (마지막에 추가)
+            newAreas[targetArea] = [...(newAreas[targetArea] || []), tab];
+
+            console.log('탭 영역 업데이트 완료:', newAreas);
+            return newAreas;
+        });
+
+        // 이동된 탭을 활성화
+        setActiveTab(tabId);
     };
 
     // 드롭존에 탭 드롭 핸들러
@@ -249,16 +414,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         console.log('드롭존 처리 시작:', { tabId, position, currentTabAreas });
 
         // 탭을 찾아서 현재 영역 확인
-        const allTabs = [...currentTabAreas.left, ...currentTabAreas.center, ...currentTabAreas.right];
-        const tab = allTabs.find(t => t.id === tabId);
+        const allTabs = [...(currentTabAreas.left || []), ...(currentTabAreas.center || []), ...(currentTabAreas.right || [])];
+        const tab = allTabs.find(t => t && t.id === tabId);
         if (!tab) {
             console.log('탭을 찾을 수 없음:', tabId);
             return;
         }
 
         // 현재 탭이 어느 영역에 있는지 찾기
-        const currentArea = currentTabAreas.left.find(t => t.id === tabId) ? 'left' :
-            currentTabAreas.center.find(t => t.id === tabId) ? 'center' : 'right';
+        const currentArea = (currentTabAreas.left || []).find(t => t && t.id === tabId) ? 'left' :
+            (currentTabAreas.center || []).find(t => t && t.id === tabId) ? 'center' : 'right';
 
         console.log('현재 영역:', currentArea, '목표 위치:', position);
 
@@ -284,9 +449,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setTabAreas(prev => {
             const newAreas = { ...prev };
             // 원본 영역에서 탭 제거
-            newAreas[currentArea] = newAreas[currentArea].filter(t => t.id !== tabId);
+            newAreas[currentArea] = (newAreas[currentArea] || []).filter(t => t && t.id !== tabId);
             // 목표 영역에 탭 추가 (마지막에 추가)
-            newAreas[targetArea] = [...newAreas[targetArea], tab];
+            newAreas[targetArea] = [...(newAreas[targetArea] || []), tab];
 
             console.log('탭 영역 업데이트:', newAreas);
             return newAreas;
@@ -324,8 +489,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 탭 닫기 핸들러
     const handleTabClose = (tabId: string) => {
-        const allTabs = [...currentTabAreas.left, ...currentTabAreas.center, ...currentTabAreas.right];
-        const currentIndex = allTabs.findIndex(tab => tab.id === tabId);
+        const allTabs = [
+            ...(currentTabAreas.left || []),
+            ...(currentTabAreas.center || []),
+            ...(currentTabAreas.right || [])
+        ].filter(tab => tab && tab.id);
+
+        const currentIndex = allTabs.findIndex(tab => tab && tab.id === tabId);
         const isActiveTab = activeTabId === tabId;
 
         // 탭 삭제
@@ -333,14 +503,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         // 영역별 상태에서도 제거
         setTabAreas(prev => ({
-            left: prev.left.filter(tab => tab.id !== tabId),
-            center: prev.center.filter(tab => tab.id !== tabId),
-            right: prev.right.filter(tab => tab.id !== tabId)
+            left: (prev.left || []).filter(tab => tab && tab.id !== tabId),
+            center: (prev.center || []).filter(tab => tab && tab.id !== tabId),
+            right: (prev.right || []).filter(tab => tab && tab.id !== tabId)
         }));
 
         // 활성 탭 처리 (기존 로직 유지)
         if (isActiveTab) {
-            const remainingTabs = allTabs.filter(tab => tab.id !== tabId);
+            const remainingTabs = allTabs.filter(tab => tab && tab.id !== tabId);
             if (remainingTabs.length > 0) {
                 let targetTab;
                 if (currentIndex > 0) {
@@ -405,35 +575,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <DropZoneOverlay
                                 isDragActive={isDragActive}
                                 activeDropZone={activeDropZone}
-                                className="flex-1 overflow-hidden"
+                                className="flex-1 min-h-0"
                             >
                                 <div className={`h-full grid gap-1 ${splitMode === 'single' ? 'grid-cols-1' :
                                     splitMode === 'double' ? 'grid-cols-2' :
                                         'grid-cols-3'
-                                    }`}>
+                                    }`} style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
                                     {splitMode === 'single' ? (
-                                        <div className="overflow-auto">
+                                        <div className="overflow-auto h-full">
                                             {currentTabAreas.left.length > 0 ? children : (
                                                 <div className="p-8 text-gray-400 text-center">헤더 메뉴를 클릭하여 탭을 추가하세요</div>
                                             )}
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="overflow-auto border-r">
+                                            <div className="overflow-auto border-r h-full">
                                                 {/* Left 영역 컨텐츠 */}
                                                 {currentTabAreas.left.length > 0 ? children : (
                                                     <div className="p-8 text-gray-400 text-center">Left 영역에 탭을 드래그하세요</div>
                                                 )}
                                             </div>
                                             {splitMode === 'triple' && (
-                                                <div className="overflow-auto border-r">
+                                                <div className="overflow-auto border-r h-full">
                                                     {/* Center 영역 컨텐츠 */}
                                                     {currentTabAreas.center.length > 0 ? children : (
                                                         <div className="p-8 text-gray-400 text-center">Center 영역에 탭을 드래그하세요</div>
                                                     )}
                                                 </div>
                                             )}
-                                            <div className="overflow-auto">
+                                            <div className="overflow-auto h-full">
                                                 {/* Right 영역 컨텐츠 */}
                                                 {currentTabAreas.right.length > 0 ? children : (
                                                     <div className="p-8 text-gray-400 text-center">Right 영역에 탭을 드래그하세요</div>

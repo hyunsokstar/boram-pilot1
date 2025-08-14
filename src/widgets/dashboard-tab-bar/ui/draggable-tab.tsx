@@ -6,7 +6,7 @@
 "use client";
 
 import React from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { TabArea } from '../model/types';
 
@@ -58,14 +58,15 @@ export default function DraggableTab({
     onTabClose,
     area
 }: DraggableTabProps) {
-    // dnd-kit의 draggable 훅 사용
+    // dnd-kit의 sortable 훅 사용 (순서 변경과 영역 간 이동 모두 지원)
     const {
         attributes,
         listeners,
         setNodeRef,
         transform,
+        transition,
         isDragging,
-    } = useDraggable({
+    } = useSortable({
         id,
         data: {
             type: 'tab',
@@ -77,15 +78,11 @@ export default function DraggableTab({
     // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
     const style = {
         transform: CSS.Transform.toString(transform),
+        transition,
         // 드래그 중에는 완전히 투명하게 (DragOverlay가 대신 표시)
         opacity: isDragging ? 0 : 1,
         // 드래그 중에는 z-index 높게 - 다른 영역으로 이동할 수 있도록
         zIndex: isDragging ? 9999 : 1,
-        // 드래그 중에는 크기와 레이아웃을 고정
-        width: isDragging ? 'auto' : 'auto',
-        height: isDragging ? 'auto' : 'auto',
-        // 드래그 중에는 position을 고정하여 컨테이너 밖으로 나갈 수 있도록
-        position: isDragging ? 'fixed' as const : 'relative' as const,
     };
 
     /**
@@ -113,13 +110,13 @@ export default function DraggableTab({
             ref={setNodeRef}
             style={style}
             className={`
-                group relative flex items-center px-3 py-2 border-2 font-medium text-sm transition-all duration-200 cursor-pointer
+                group relative flex items-center px-3 py-1.5 border-2 font-medium text-sm transition-all duration-200 cursor-pointer
                 ${isActive
                     ? 'border-blue-500 text-blue-700 bg-blue-50'
                     : 'border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-white bg-white'
                 }
                 ${isDragging ? 'shadow-lg border-blue-400 bg-blue-100' : ''}
-                min-w-0 flex-shrink-0
+                min-w-0 flex-shrink-0 h-8
             `}
             onClick={handleClick}
             aria-current={isActive ? 'page' : undefined}

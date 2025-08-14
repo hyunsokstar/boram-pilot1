@@ -87,6 +87,7 @@ export default function TabGroup({
                                 activeTab={getActiveTabForArea(area)}
                                 onTabChange={(tabId) => onTabChange?.(tabId, area)}
                                 onTabClose={onTabClose}
+                                onTabReorder={(sourceIndex, destinationIndex) => onTabReorder?.(sourceIndex, destinationIndex, area)}
                                 area={area}
                             />
                         </div>
