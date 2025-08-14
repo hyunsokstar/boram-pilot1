@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { loginApi, saveAuthToken, saveUserInfo, LoginRequest, User } from '@/shared/api';
+import { loginApi, LoginRequest, User } from '@/shared/api';
+import { saveAuthToken } from '@/shared/api/auth';
 import { useAuthStore } from '@/shared/store';
 
 export const useLogin = () => {
@@ -26,8 +27,6 @@ export const useLogin = () => {
                     token: response.data.token
                 };
 
-                saveUserInfo(user);
-                
                 // Zustand 스토어에 인증 정보 저장
                 setAuthState(user, response.data.token);
 
