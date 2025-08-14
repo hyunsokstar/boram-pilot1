@@ -66,9 +66,9 @@ export default function DashboardHeader() {
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => router.push('/dashboard')}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-lg px-2 py-1"
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-2 py-1"
                     >
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-sm">B</span>
                         </div>
                         <span className="text-xl font-bold text-gray-900">Boram</span>
@@ -85,7 +85,7 @@ export default function DashboardHeader() {
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
                                 className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${
                                     isActive
-                                        ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200"
+                                        ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200"
                                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95"
                                     }`}
                                 title={m.label}
@@ -93,7 +93,7 @@ export default function DashboardHeader() {
                                 {/* 아이콘 컨테이너 */}
                                 <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
                                     isActive 
-                                        ? "bg-indigo-100" 
+                                        ? "bg-blue-100" 
                                         : "bg-gray-100 group-hover:bg-gray-200"
                                 }`}>
                                     {m.iconUrl ? (
@@ -105,7 +105,7 @@ export default function DashboardHeader() {
                                             className={`transition-opacity ${isActive ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
                                         />
                                     ) : (
-                                        <div className={`w-4 h-4 rounded-sm ${isActive ? "bg-indigo-400" : "bg-gray-400"}`} />
+                                        <div className={`w-4 h-4 rounded-sm ${isActive ? "bg-blue-400" : "bg-gray-400"}`} />
                                     )}
                                 </div>
                                 
@@ -114,7 +114,7 @@ export default function DashboardHeader() {
                                 
                                 {/* 활성 상태 인디케이터 */}
                                 {isActive && (
-                                    <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-indigo-500 rounded-full" />
+                                    <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-500 rounded-full" />
                                 )}
                                 
                                 {/* 호버 효과 */}
@@ -130,7 +130,7 @@ export default function DashboardHeader() {
                 <div className="flex items-center gap-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            <button className="w-8 h-8 bg-gradient-to-br from-slate-600 to-gray-700 rounded-full flex items-center justify-center hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                                 <span className="text-white font-semibold text-sm">
                                     {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </span>
