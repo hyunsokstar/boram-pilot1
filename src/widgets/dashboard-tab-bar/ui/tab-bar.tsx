@@ -108,36 +108,27 @@ export default function TabBar({
                 className={`bg-gray-50 border-b border-gray-200 px-2 relative transition-all duration-200 ${className}`}
                 style={{ overflow: 'visible', position: 'relative', height: '48px' }}
             >
-                {/* 본문 영역 스타일의 드롭 오버레이 */}
+                {/* 미니멀한 드롭 인디케이터 - 점선 테두리만 */}
                 {isOver && (
                     <div className="absolute inset-0 z-30 pointer-events-none">
-                        {/* 배경 오버레이 */}
-                        <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-sm border-2 border-dashed border-blue-400 rounded-lg" />
+                        {/* 점선 테두리만 표시 */}
+                        <div className="absolute inset-0 border-2 border-dashed border-blue-400 rounded-lg animate-pulse" style={{
+                            borderColor: '#3b82f6',
+                            boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.1)',
+                        }} />
 
-                        {/* 중앙 드롭 메시지 */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="bg-blue-500 text-white px-3 py-1 rounded-md font-medium text-xs shadow-lg scale-105 animate-pulse">
-                                <div className="flex items-center gap-1">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                                    </svg>
-                                    첫 번째 탭을 여기에 놓으세요
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
-                                </div>
+                        {/* 작은 드롭 아이콘 - 우상단에 표시 */}
+                        <div className="absolute top-1 right-1">
+                            <div className="bg-blue-500 text-white p-1 rounded-full shadow-md scale-110 animate-bounce">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                </svg>
                             </div>
                         </div>
-
-                        {/* 장식용 모서리 표시 */}
-                        <div className="absolute top-1 left-1 w-3 h-3 border-l-2 border-t-2 border-blue-500 rounded-tl-lg" />
-                        <div className="absolute top-1 right-1 w-3 h-3 border-r-2 border-t-2 border-blue-500 rounded-tr-lg" />
-                        <div className="absolute bottom-1 left-1 w-3 h-3 border-l-2 border-b-2 border-blue-500 rounded-bl-lg" />
-                        <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-blue-500 rounded-br-lg" />
                     </div>
                 )}
 
-                <div className={`py-1 px-1 text-sm text-gray-500 relative z-20 flex items-center justify-center ${isOver ? 'opacity-30' : 'opacity-100'} transition-opacity duration-200`} style={{ minHeight: '32px' }}>
+                <div className={`py-1 px-1 text-sm text-gray-500 relative z-20 flex items-center justify-center transition-opacity duration-200`} style={{ minHeight: '32px' }}>
                     헤더 메뉴를 클릭하여 탭을 추가하세요
                 </div>
             </div>
@@ -150,32 +141,23 @@ export default function TabBar({
             className={`bg-gray-50 border-b border-gray-200 px-2 relative transition-all duration-200 ${className}`}
             style={{ overflow: 'visible', position: 'relative', height: '48px' }}
         >
-            {/* 본문 영역 스타일의 드롭 오버레이 */}
+            {/* 미니멀한 드롭 인디케이터 - 점선 테두리만 */}
             {isOver && (
                 <div className="absolute inset-0 z-30 pointer-events-none">
-                    {/* 배경 오버레이 */}
-                    <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-sm border-2 border-dashed border-blue-400 rounded-lg" />
+                    {/* 점선 테두리만 표시 */}
+                    <div className="absolute inset-0 border-2 border-dashed border-blue-400 rounded-lg animate-pulse" style={{
+                        borderColor: '#3b82f6',
+                        boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.1)',
+                    }} />
 
-                    {/* 중앙 드롭 메시지 */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-blue-500 text-white px-3 py-1 rounded-md font-medium text-xs shadow-lg scale-105 animate-pulse">
-                            <div className="flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                                </svg>
-                                탭을 여기에 놓으세요
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                </svg>
-                            </div>
+                    {/* 작은 드롭 아이콘 - 우상단에 표시 */}
+                    <div className="absolute top-1 right-1">
+                        <div className="bg-blue-500 text-white p-1 rounded-full shadow-md scale-110 animate-bounce">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
                         </div>
                     </div>
-
-                    {/* 장식용 모서리 표시 */}
-                    <div className="absolute top-1 left-1 w-3 h-3 border-l-2 border-t-2 border-blue-500 rounded-tl-lg" />
-                    <div className="absolute top-1 right-1 w-3 h-3 border-r-2 border-t-2 border-blue-500 rounded-tr-lg" />
-                    <div className="absolute bottom-1 left-1 w-3 h-3 border-l-2 border-b-2 border-blue-500 rounded-bl-lg" />
-                    <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-blue-500 rounded-br-lg" />
                 </div>
             )}
 
