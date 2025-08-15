@@ -10,6 +10,7 @@ export { default as DoubleSplitOverlay } from './ui/double-split-overlay';
 export { default as TripleSplitOverlay } from './ui/triple-split-overlay';
 export { default as DynamicTab } from './ui/dynamic-tab';
 export { default as DraggableTab } from './ui/draggable-tab';
+export { default as ResizablePanelGroup } from './ui/resizable-panel-group';
 export type { TabItem, TabBarProps } from './ui/tab-bar';
 export type { TabGroupProps } from './ui/tab-group';
 export type { DropZoneOverlayProps, DropPosition } from './ui/drop-zone-overlay';

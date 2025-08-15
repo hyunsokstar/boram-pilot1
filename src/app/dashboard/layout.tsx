@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
-import { TabGroup, DoubleSplitOverlay, TripleSplitOverlay } from "@/widgets/dashboard-tab-bar";
+import { TabGroup, DoubleSplitOverlay, TripleSplitOverlay, ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
 import type { SplitMode, DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
@@ -321,15 +321,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <DashboardHeader />
                         <div className="flex-1 relative">
-                            <TabGroup
-                                splitMode={splitMode}
-                                onSplitModeChange={setSplitMode}
-                                areas={tabAreas}
-                                activeTabByArea={activeTabsByArea}
-                                onTabChange={handleTabChange}
-                                onTabClose={removeTab}
-                            />
-
                             {/* 드래그 시 오버레이 (배경 그리드) */}
                             {isDragActive && (
                                 <>
@@ -364,43 +355,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 </>
                             )}
 
-                            {/* 콘텐츠 영역 */}
-                            <div className="absolute inset-0 flex h-full">
-                                {/* Left 영역 */}
-                                <div className={`bg-white border-r border-gray-200 ${splitMode === 'single' ? 'w-full' :
-                                        splitMode === 'double' ? 'w-1/2' :
-                                            'w-1/3'
-                                    }`}>
-                                    {isDragActive ? (
-                                        <ExpandedDropZone area="left" />
-                                    ) : (
-                                        renderAreaContent('left')
-                                    )}
-                                </div>
-
-                                {/* Center 영역 (2단, 3단 모드에서만 표시) */}
-                                {splitMode !== 'single' && (
-                                    <div className={`bg-white ${splitMode === 'double' ? 'w-1/2' :
-                                            'w-1/3 border-r border-gray-200'
-                                        }`}>
-                                        {isDragActive ? (
-                                            <ExpandedDropZone area={splitMode === 'double' ? 'right' : 'center'} />
-                                        ) : (
-                                            renderAreaContent(splitMode === 'double' ? 'right' : 'center')
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Right 영역 (3단 모드에서만 표시) */}
-                                {splitMode === 'triple' && (
-                                    <div className="w-1/3 bg-white">
-                                        {isDragActive ? (
-                                            <ExpandedDropZone area="right" />
-                                        ) : (
-                                            renderAreaContent('right')
-                                        )}
-                                    </div>
-                                )}
+                            {/* 통합된 탭바 + 콘텐츠 리사이즈 패널 */}
+                            <div className="absolute inset-0">
+                                <ResizablePanelGroup
+                                    splitMode={splitMode}
+                                    isDragActive={isDragActive}
+                                    tabAreas={tabAreas}
+                                    activeTabsByArea={activeTabsByArea}
+                                    onTabChange={handleTabChange}
+                                    onTabClose={removeTab}
+                                    onSplitModeChange={setSplitMode}
+                                    renderAreaContent={renderAreaContent}
+                                    ExpandedDropZone={ExpandedDropZone}
+                                />
                             </div>
                         </div>
                     </div>
