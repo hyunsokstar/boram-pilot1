@@ -195,10 +195,10 @@ export default function TabBar({
                             boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.1)',
                         }} />
 
-                        {/* 작은 드롭 아이콘 - 우상단에 표시 */}
-                        <div className="absolute top-1 right-1">
-                            <div className="bg-blue-500 text-white p-1 rounded-full shadow-md scale-110 animate-bounce">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {/* 작은 드롭 아이콘 - 가운데에 표시 */}
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div className="bg-blue-500 text-white p-2 rounded-full shadow-md scale-110 animate-bounce">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
                             </div>
@@ -206,7 +206,16 @@ export default function TabBar({
                     </div>
                 )}
 
-                <div className={`py-1 px-1 text-sm text-gray-500 relative z-20 flex items-center justify-center transition-opacity duration-200`} style={{ minHeight: '32px' }}>
+                {/* 오른쪽 컨트롤 영역 - 탭이 없어도 동일하게 배치 */}
+
+                <div
+                    className={`py-1 px-1 text-sm text-gray-500 relative z-20 flex items-center justify-center transition-opacity duration-200`}
+                    style={{
+                        minHeight: '32px',
+                        marginLeft: '8px',   // 심플한 여백
+                        marginRight: '8px'   // 심플한 여백
+                    }}
+                >
                     헤더 메뉴를 클릭하여 탭을 추가하세요
                 </div>
             </div>
@@ -216,7 +225,7 @@ export default function TabBar({
     return (
         <div
             ref={setDropRef}
-            className={`bg-gray-50 border-b border-gray-200 px-2 relative transition-all duration-200 ${className}`}
+            className={`bg-gray-50 border-b border-gray-200 relative transition-all duration-200 ${className}`}
             style={{ overflow: 'visible', position: 'relative', height: '48px' }}
         >
             {/* 미니멀한 드롭 인디케이터 - 점선 테두리만 */}
@@ -228,10 +237,10 @@ export default function TabBar({
                         boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.1)',
                     }} />
 
-                    {/* 작은 드롭 아이콘 - 우상단에 표시 */}
-                    <div className="absolute top-1 right-1">
-                        <div className="bg-blue-500 text-white p-1 rounded-full shadow-md scale-110 animate-bounce">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {/* 작은 드롭 아이콘 - 가운데에 표시 */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="bg-blue-500 text-white p-2 rounded-full shadow-md scale-110 animate-bounce">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                             </svg>
                         </div>
@@ -239,70 +248,75 @@ export default function TabBar({
                 </div>
             )}
 
-            {/* 왼쪽 스크롤 버튼 */}
-            {canScrollLeft && (
-                <button
-                    onClick={scrollLeft}
-                    className="absolute left-1 top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
-                    title="왼쪽으로 스크롤"
-                >
-                    <ChevronLeft className="w-3.5 h-3.5 text-gray-700" />
-                </button>
-            )}
-
-            {/* 영역 닫기 버튼 */}
-            {area && onAreaClose && (
-                <button
-                    onClick={handleAreaClose}
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-all duration-200"
-                    title="영역 닫기"
-                >
-                    <Minus className="w-3.5 h-3.5 text-gray-600 hover:text-red-600" />
-                </button>
-            )}
-
-            <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
-                {/* 탭 컨테이너 */}
-                <div
-                    ref={scrollContainerRef}
-                    className="flex gap-2 h-full items-center overflow-x-auto scrollbar-hide relative z-10"
-                    style={{
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        marginLeft: canScrollLeft ? '36px' : '8px',
-                        marginRight: (area && onAreaClose) ? '36px' : (canScrollRight ? '36px' : '8px'),
-                        paddingRight: canScrollRight ? '36px' : '0',
-                    }}
-                >
-                    {tabs.map((tab) => (
-                        <DraggableTab
-                            key={tab.id}
-                            id={tab.id}
-                            label={tab.label}
-                            isActive={activeTab === tab.id}
-                            isClosable={tab.isClosable}
-                            onTabClick={handleTabClick}
-                            onTabClose={handleCloseTab}
-                            area={area}
-                        />
-                    ))}
-
-                    {/* 맨 끝으로 이동할 수 있는 드롭존 */}
-                    <EndDropZone area={area} />
+            {/* Flex 기반 레이아웃 */}
+            <div className="flex items-center h-full px-2 gap-2">
+                {/* 왼쪽 컨트롤 */}
+                <div className="flex-shrink-0">
+                    {canScrollLeft && (
+                        <button
+                            onClick={scrollLeft}
+                            className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
+                            title="왼쪽으로 스크롤"
+                        >
+                            <ChevronLeft className="w-3.5 h-3.5 text-gray-700" />
+                        </button>
+                    )}
                 </div>
-            </SortableContext>
 
-            {/* 오른쪽 스크롤 버튼 */}
-            {canScrollRight && (
-                <button
-                    onClick={scrollRight}
-                    className="absolute top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
-                    style={{ right: (area && onAreaClose) ? '44px' : '8px' }}
-                    title="오른쪽으로 스크롤"
-                >
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
-                </button>
-            )}
+                {/* 탭 컨테이너 - 가운데 확장 */}
+                <div className="flex-1 min-w-0">
+                    <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
+                        <div
+                            ref={scrollContainerRef}
+                            className="flex gap-2 h-full items-center overflow-x-auto scrollbar-hide"
+                            style={{
+                                scrollbarWidth: 'none',
+                                msOverflowStyle: 'none',
+                            }}
+                        >
+                            {tabs.map((tab) => (
+                                <DraggableTab
+                                    key={tab.id}
+                                    id={tab.id}
+                                    label={tab.label}
+                                    isActive={activeTab === tab.id}
+                                    isClosable={tab.isClosable}
+                                    onTabClick={handleTabClick}
+                                    onTabClose={handleCloseTab}
+                                    area={area}
+                                />
+                            ))}
+
+                            {/* 맨 끝으로 이동할 수 있는 드롭존 */}
+                            <EndDropZone area={area} />
+                        </div>
+                    </SortableContext>
+                </div>
+
+                {/* 오른쪽 컨트롤 */}
+                <div className="flex-shrink-0 flex items-center gap-1">
+                    {canScrollRight && (
+                        <button
+                            onClick={scrollRight}
+                            className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
+                            title="오른쪽으로 스크롤"
+                        >
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
+                        </button>
+                    )}
+
+                    {/* 탭이 있을 때만 영역 닫기 버튼 표시 */}
+                    {tabs.length > 0 && area && onAreaClose && (
+                        <button
+                            onClick={handleAreaClose}
+                            className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-red-50 hover:border-red-200 border border-gray-200 transition-all duration-200"
+                            title="영역 닫기"
+                        >
+                            <Minus className="w-3.5 h-3.5 text-gray-600 hover:text-red-600 transition-colors duration-200" />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <style jsx>{`
                 .scrollbar-hide::-webkit-scrollbar {

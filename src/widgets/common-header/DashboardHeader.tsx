@@ -8,6 +8,7 @@ import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { useAuthStore } from "@/shared/store/authStore";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
+import { SplitModeSelect } from "@/widgets/dashboard-tab-bar/ui/split-mode-select";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,7 +23,7 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const { addTab, getAllTabs, getAllActiveTabIds } = useTabStore();
+    const { addTab, getAllTabs, getAllActiveTabIds, splitMode, setSplitMode } = useTabStore();
 
     // 현재 경로 기반 활성 메뉴
     const currentActiveMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
@@ -165,6 +166,15 @@ export default function DashboardHeader() {
 
                 {/* 사용자 정보 영역 */}
                 <div className="flex items-center gap-3">
+                    {/* 분할 모드 컨트롤 */}
+                    <div className="flex items-center">
+                        <SplitModeSelect
+                            currentMode={splitMode}
+                            onModeChange={setSplitMode}
+                            size="compact"
+                        />
+                    </div>
+                    
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className="w-8 h-8 bg-gradient-to-br from-slate-600 to-gray-700 rounded-full flex items-center justify-center hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">

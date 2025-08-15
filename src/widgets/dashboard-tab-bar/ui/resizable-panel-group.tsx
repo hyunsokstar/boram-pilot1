@@ -38,17 +38,16 @@ function EmptyHeaderDropZone({ area }: { area: TabArea }) {
     return (
         <div
             ref={setNodeRef}
-            className={`h-12 w-full flex items-center px-3 text-sm transition-all duration-200 relative ${
-                isOver 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`h-12 w-full flex items-center px-3 text-sm transition-all duration-200 relative ${isOver
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}
         >
             {/* 드롭 상태일 때 전체 영역 강조 */}
             {isOver && (
                 <div className="absolute inset-0 border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-sm animate-pulse" />
             )}
-            
+
             <div className="flex items-center gap-2 relative z-10">
                 {isOver && (
                     <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
@@ -72,8 +71,7 @@ function IntegratedPanel({
     onTabClose,
     renderAreaContent,
     ExpandedDropZone,
-    showCloseButton = false,
-    onClosePanel
+    onAreaClose,
 }: {
     area: TabArea;
     isDragActive: boolean;
@@ -83,8 +81,7 @@ function IntegratedPanel({
     onTabClose: (tabId: string) => void;
     renderAreaContent: (area: TabArea) => React.ReactNode;
     ExpandedDropZone: React.ComponentType<{ area: TabArea }>;
-    showCloseButton?: boolean;
-    onClosePanel?: () => void;
+    onAreaClose?: (area: TabArea) => void;
 }) {
     const areaTabs = tabAreas[area] || [];
     const activeTab = activeTabsByArea[area];
@@ -100,24 +97,11 @@ function IntegratedPanel({
                         onTabChange={(tabId) => onTabChange(tabId, area)}
                         onTabClose={onTabClose}
                         area={area}
+                        onAreaClose={onAreaClose}
                     />
                 ) : (
                     /* 빈 헤더 드롭존 */
                     <EmptyHeaderDropZone area={area} />
-                )}
-
-                {/* 분할 해제 버튼 */}
-                {showCloseButton && onClosePanel && (
-                    <button
-                        onClick={onClosePanel}
-                        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center 
-                                 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-600 
-                                 transition-colors duration-200 text-lg font-bold z-10
-                                 border border-gray-200 hover:border-red-300 bg-white shadow-sm"
-                        title="분할 해제"
-                    >
-                        ×
-                    </button>
                 )}
             </div>
 
@@ -149,9 +133,31 @@ export default function ResizablePanelGroup({
     // 리사이즈 핸들 스타일
     const resizeHandleStyle = "w-1 bg-gray-300 hover:bg-blue-400 transition-colors duration-200 cursor-col-resize";
 
-    // 분할 해제 함수
+    // 특정 영역 닫기 함수
+    const handleAreaClose = (closingArea: TabArea) => {
+        if (moveTabToArea && getTabsForArea) {
+            // 닫히는 영역의 탭들을 left 영역으로 이동
+            const tabsToMove = getTabsForArea(closingArea);
+            tabsToMove.forEach(tab => {
+                moveTabToArea(tab.id, closingArea, 'left');
+            });
+
+            // 분할 모드 변경
+            if (onSplitModeChange) {
+                if (splitMode === 'triple') {
+                    // triple에서 하나 닫으면 double로
+                    onSplitModeChange('double');
+                } else if (splitMode === 'double') {
+                    // double에서 하나 닫으면 single로
+                    onSplitModeChange('single');
+                }
+            }
+        }
+    };
+
+    // 전체 분할 해제 함수 (이전 버전과 호환성을 위해 유지)
     const handleCloseSplit = () => {
-        // 다른 영역의 탭들을 left 영역으로 이동
+        // 모든 영역의 탭들을 left 영역으로 이동
         if (moveTabToArea && getTabsForArea) {
             // right 영역의 탭들을 left로 이동
             const rightTabs = getTabsForArea('right');
@@ -175,6 +181,7 @@ export default function ResizablePanelGroup({
     };
 
     // 분할 모드 선택 컴포넌트
+    /* 
     const SplitModeControl = () => (
         onSplitModeChange && (
             <div className="absolute top-2 right-2 z-10">
@@ -186,11 +193,12 @@ export default function ResizablePanelGroup({
             </div>
         )
     );
+    */
 
     if (splitMode === 'single') {
         return (
             <div className="h-full w-full relative">
-                <SplitModeControl />
+                {/* <SplitModeControl /> */}
                 <IntegratedPanel
                     area="left"
                     isDragActive={isDragActive}
@@ -208,7 +216,7 @@ export default function ResizablePanelGroup({
     if (splitMode === 'double') {
         return (
             <div className="h-full relative">
-                <SplitModeControl />
+                {/* <SplitModeControl /> */}
                 <PanelGroup direction="horizontal" className="h-full">
                     {/* Left Panel */}
                     <Panel
@@ -225,8 +233,7 @@ export default function ResizablePanelGroup({
                             onTabClose={onTabClose}
                             renderAreaContent={renderAreaContent}
                             ExpandedDropZone={ExpandedDropZone}
-                            showCloseButton={true}
-                            onClosePanel={handleCloseSplit}
+                            onAreaClose={() => handleAreaClose('left')}
                         />
                     </Panel>
 
@@ -247,8 +254,7 @@ export default function ResizablePanelGroup({
                             onTabClose={onTabClose}
                             renderAreaContent={renderAreaContent}
                             ExpandedDropZone={ExpandedDropZone}
-                            showCloseButton={true}
-                            onClosePanel={handleCloseSplit}
+                            onAreaClose={() => handleAreaClose('right')}
                         />
                     </Panel>
                 </PanelGroup>
@@ -259,7 +265,7 @@ export default function ResizablePanelGroup({
     if (splitMode === 'triple') {
         return (
             <div className="h-full relative">
-                <SplitModeControl />
+                {/* <SplitModeControl /> */}
                 <PanelGroup direction="horizontal" className="h-full">
                     {/* Left Panel */}
                     <Panel
@@ -276,8 +282,7 @@ export default function ResizablePanelGroup({
                             onTabClose={onTabClose}
                             renderAreaContent={renderAreaContent}
                             ExpandedDropZone={ExpandedDropZone}
-                            showCloseButton={true}
-                            onClosePanel={handleCloseSplit}
+                            onAreaClose={() => handleAreaClose('left')}
                         />
                     </Panel>
 
@@ -299,8 +304,7 @@ export default function ResizablePanelGroup({
                             onTabClose={onTabClose}
                             renderAreaContent={renderAreaContent}
                             ExpandedDropZone={ExpandedDropZone}
-                            showCloseButton={true}
-                            onClosePanel={handleCloseSplit}
+                            onAreaClose={() => handleAreaClose('center')}
                         />
                     </Panel>
 
@@ -321,8 +325,7 @@ export default function ResizablePanelGroup({
                             onTabClose={onTabClose}
                             renderAreaContent={renderAreaContent}
                             ExpandedDropZone={ExpandedDropZone}
-                            showCloseButton={true}
-                            onClosePanel={handleCloseSplit}
+                            onAreaClose={() => handleAreaClose('right')}
                         />
                     </Panel>
                 </PanelGroup>
