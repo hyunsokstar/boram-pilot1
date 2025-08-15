@@ -7,7 +7,9 @@
 
 import React from 'react';
 import TabBar from './tab-bar';
+import { Layout, Columns2, Columns3 } from 'lucide-react';
 import type { TabAreas, TabArea, SplitMode } from '../model/types';
+import { SplitModeSelect } from './split-mode-select';
 export type { DropPosition } from './drop-zone-overlay';
 
 export interface TabGroupProps {
@@ -97,20 +99,17 @@ export default function TabGroup({
                     ))}
                 </div>
             </div>
-            <div className="flex items-center gap-1 ml-4">
-                {(['single', 'double', 'triple'] as SplitMode[]).map((mode) => (
-                    <button
-                        key={mode}
-                        onClick={() => onSplitModeChange?.(mode)}
-                        className={`w-6 h-6 text-xs rounded border transition-colors flex items-center justify-center ${splitMode === mode
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
-                            }`}
-                        title={`${mode === 'single' ? '1단' : mode === 'double' ? '2단' : '3단'} 분할`}
-                    >
-                        {mode === 'single' ? '1' : mode === 'double' ? '2' : '3'}
-                    </button>
-                ))}
+
+            {/* 분할 모드 선택 컴포넌트 */}
+            <div className="flex items-center ml-4">
+                <SplitModeSelect
+                    currentMode={splitMode}
+                    onModeChange={onSplitModeChange || (() => { })}
+                    size="compact"
+                    panelWidth="w-24"
+                    placement="bottom-right"
+                    showLabel={false}
+                />
             </div>
         </div>
     );
