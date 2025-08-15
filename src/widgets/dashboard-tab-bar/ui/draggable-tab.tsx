@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { TabArea } from '../model/types';
 
@@ -75,6 +76,21 @@ export default function DraggableTab({
         }
     });
 
+    // 드롭존 기능 추가 (다른 탭이 이 탭 위에 드롭될 수 있도록)
+    const { setNodeRef: setDropRef, isOver } = useDroppable({
+        id: `tab-drop-${id}`,
+        data: {
+            type: 'tab-area',
+            area: area,
+        },
+    });
+
+    // 두 ref를 결합하는 함수
+    const setRefs = (node: HTMLElement | null) => {
+        setNodeRef(node);
+        setDropRef(node);
+    };
+
     // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -107,7 +123,7 @@ export default function DraggableTab({
 
     return (
         <div
-            ref={setNodeRef}
+            ref={setRefs}
             style={style}
             className={`
                 group relative flex items-center px-3 py-1.5 border-2 font-medium text-sm transition-all duration-200 cursor-pointer
@@ -116,6 +132,7 @@ export default function DraggableTab({
                     : 'border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-white bg-white'
                 }
                 ${isDragging ? 'shadow-lg border-blue-400 bg-blue-100' : ''}
+                ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50' : ''}
                 min-w-0 flex-shrink-0 h-8
             `}
             onClick={handleClick}

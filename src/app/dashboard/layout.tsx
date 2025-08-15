@@ -138,6 +138,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             console.log('탭바 영역 호버:', area);
             // 탭바 영역에 대한 시각적 피드백은 TabBar 컴포넌트에서 isOver로 처리
             setActiveDropZone(null);
+        } else if (over?.id?.toString().startsWith('tab-end-')) {
+            // EndDropZone 호버
+            const area = over.data?.current?.area as TabArea;
+            console.log('EndDropZone 호버:', area);
+            setActiveDropZone(null);
         } else {
             setActiveDropZone(null);
         }
@@ -185,6 +190,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         if (over.data?.current?.type === 'tab-area') {
             const targetArea = over.data.current.area as TabArea;
             console.log('탭 영역으로 드래그:', { draggedTabId, targetArea });
+
+            const tabInfo = findTabById(draggedTabId);
+            if (tabInfo) {
+                moveTabToArea(draggedTabId, tabInfo.area, targetArea);
+            }
+            return;
+        }
+
+        // EndDropZone으로 드래그 (탭 영역 끝부분)
+        if (over?.id?.toString().startsWith('tab-end-')) {
+            const targetArea = over.data?.current?.area as TabArea;
+            console.log('EndDropZone으로 드래그:', { draggedTabId, targetArea });
 
             const tabInfo = findTabById(draggedTabId);
             if (tabInfo) {

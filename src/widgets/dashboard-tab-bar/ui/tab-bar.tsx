@@ -26,7 +26,7 @@ function EndDropZone({ area }: { area?: TabArea }) {
         <div
             ref={setNodeRef}
             className={`
-                flex-shrink-0 w-8 h-8 mx-1 transition-all duration-200 rounded
+                flex-shrink-0 w-12 h-8 mx-2 transition-all duration-200 rounded
                 ${isOver
                     ? 'bg-blue-100 border-2 border-dashed border-blue-400'
                     : 'bg-transparent border-2 border-dashed border-transparent hover:border-gray-300'
@@ -265,7 +265,7 @@ export default function TabBar({
                 {/* 탭 컨테이너 */}
                 <div
                     ref={scrollContainerRef}
-                    className="flex gap-1 h-full items-center overflow-x-auto scrollbar-hide"
+                    className="flex gap-2 h-full items-center overflow-x-auto scrollbar-hide relative z-10"
                     style={{
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
