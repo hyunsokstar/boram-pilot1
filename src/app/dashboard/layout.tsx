@@ -230,16 +230,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         // position에 따라 splitMode 설정 및 탭 이동
         switch (position) {
             case 'left':
-                setSplitMode('double');
+                if (splitMode === 'single') {
+                    setSplitMode('double');
+                }
                 moveTabToArea(tabId, tabInfo.area, 'left');
                 break;
             case 'right':
-                setSplitMode('double');
+                if (splitMode === 'single') {
+                    setSplitMode('double');
+                } else if (splitMode === 'double') {
+                    setSplitMode('triple');
+                }
                 moveTabToArea(tabId, tabInfo.area, 'right');
                 break;
             case 'center':
-                setSplitMode('single');
-                moveTabToArea(tabId, tabInfo.area, 'left');
+                // triple 모드에서만 center 영역 사용
+                if (splitMode === 'double') {
+                    setSplitMode('triple');
+                    moveTabToArea(tabId, tabInfo.area, 'center');
+                }
                 break;
         }
     };
@@ -366,6 +375,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     onSplitModeChange={setSplitMode}
                                     renderAreaContent={renderAreaContent}
                                     ExpandedDropZone={ExpandedDropZone}
+                                    moveTabToArea={moveTabToArea}
+                                    getTabsForArea={getTabsForArea}
                                 />
                             </div>
                         </div>
