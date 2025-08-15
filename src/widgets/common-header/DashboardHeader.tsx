@@ -25,8 +25,8 @@ export default function DashboardHeader() {
     const { user, logout } = useAuthStore();
     const { addTab, getAllTabs, getAllActiveTabIds, splitMode, setSplitMode } = useTabStore();
 
-    // 현재 경로 기반 활성 메뉴
-    const currentActiveMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
+    // 현재 경로 기반 활성 메뉴 - 기본 선택 없음
+    const currentActiveMenuNo = null;
 
     // Zustand에서 직접 활성 탭 ID들을 가져와서 메뉴 번호로 변환
     const allTabs = getAllTabs();
@@ -174,7 +174,7 @@ export default function DashboardHeader() {
                             size="compact"
                         />
                     </div>
-                    
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className="w-8 h-8 bg-gradient-to-br from-slate-600 to-gray-700 rounded-full flex items-center justify-center hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">

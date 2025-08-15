@@ -360,6 +360,11 @@ export const useTabStore = create<TabStore>((set, get) => {
                     activeTabId: state.activeTabId === tabId ? (newActiveTabsByArea[area] || null) : state.activeTabId
                 };
 
+                // 가운데 영역의 마지막 탭이 제거되면 double 모드로 변경
+                if (area === 'center' && newTabAreas.center.length === 0 && state.splitMode === 'triple') {
+                    newState.splitMode = 'double';
+                }
+
                 // localStorage에 저장
                 saveToLocalStorage(newState);
 
@@ -547,11 +552,11 @@ if (typeof window !== 'undefined') {
 // 클라이언트에서 localStorage 상태 복원
 export const restoreFromLocalStorage = () => {
     if (typeof window === 'undefined') return;
-    
+
     const savedState = loadFromLocalStorage();
     if (savedState) {
         const store = useTabStore.getState();
-        
+
         // 저장된 상태로 복원
         useTabStore.setState({
             tabAreas: savedState.tabAreas || store.tabAreas,
@@ -559,7 +564,7 @@ export const restoreFromLocalStorage = () => {
             activeTabsByArea: savedState.activeTabsByArea || store.activeTabsByArea,
             splitMode: savedState.splitMode || store.splitMode
         });
-        
+
         console.log('localStorage에서 상태 복원됨:', savedState);
     }
 };

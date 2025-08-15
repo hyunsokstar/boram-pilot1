@@ -206,17 +206,28 @@ export default function TabBar({
                     </div>
                 )}
 
-                {/* 오른쪽 컨트롤 영역 - 탭이 없어도 동일하게 배치 */}
+                {/* Flex 기반 레이아웃 - 탭이 없을 때도 동일 구조 */}
+                <div className="flex items-center h-full px-2 gap-2">
+                    {/* 가운데 확장 - 안내 메시지 */}
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="py-1 px-1 text-sm text-gray-500 relative z-20">
+                            헤더 메뉴를 클릭하여 탭을 추가하세요
+                        </div>
+                    </div>
 
-                <div
-                    className={`py-1 px-1 text-sm text-gray-500 relative z-20 flex items-center justify-center transition-opacity duration-200`}
-                    style={{
-                        minHeight: '32px',
-                        marginLeft: '8px',   // 심플한 여백
-                        marginRight: '8px'   // 심플한 여백
-                    }}
-                >
-                    헤더 메뉴를 클릭하여 탭을 추가하세요
+                    {/* 오른쪽 컨트롤 */}
+                    <div className="flex-shrink-0 flex items-center gap-1">
+                        {/* 영역 닫기 버튼 - 탭이 없어도 표시 */}
+                        {area && onAreaClose && (
+                            <button
+                                onClick={handleAreaClose}
+                                className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-red-50 hover:border-red-200 border border-gray-200 transition-all duration-200"
+                                title="영역 닫기"
+                            >
+                                <Minus className="w-3.5 h-3.5 text-gray-600 hover:text-red-600 transition-colors duration-200" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -280,7 +291,7 @@ export default function TabBar({
                                     id={tab.id}
                                     label={tab.label}
                                     isActive={activeTab === tab.id}
-                                    isClosable={tab.isClosable}
+                                    isClosable={area === 'center' ? true : tab.isClosable}
                                     onTabClick={handleTabClick}
                                     onTabClose={handleCloseTab}
                                     area={area}
@@ -305,8 +316,8 @@ export default function TabBar({
                         </button>
                     )}
 
-                    {/* 탭이 있을 때만 영역 닫기 버튼 표시 */}
-                    {tabs.length > 0 && area && onAreaClose && (
+                    {/* 영역 닫기 버튼 - 탭 유무와 관계없이 표시 */}
+                    {area && onAreaClose && (
                         <button
                             onClick={handleAreaClose}
                             className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-red-50 hover:border-red-200 border border-gray-200 transition-all duration-200"
