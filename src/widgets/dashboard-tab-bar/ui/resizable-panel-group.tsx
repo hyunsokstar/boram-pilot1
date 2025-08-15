@@ -38,18 +38,24 @@ function EmptyHeaderDropZone({ area }: { area: TabArea }) {
     return (
         <div
             ref={setNodeRef}
-            className={`h-12 flex items-center px-3 text-sm transition-all duration-200 ${isOver
-                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-400'
-                    : 'text-gray-400'
-                }`}
+            className={`h-12 w-full flex items-center px-3 text-sm transition-all duration-200 relative ${
+                isOver 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            }`}
         >
-            <div className="flex items-center gap-2">
+            {/* 드롭 상태일 때 전체 영역 강조 */}
+            {isOver && (
+                <div className="absolute inset-0 border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-sm animate-pulse" />
+            )}
+            
+            <div className="flex items-center gap-2 relative z-10">
                 {isOver && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
                 )}
-                <span>
+                <span className="font-medium">
                     {area === 'left' ? '왼쪽 영역' : area === 'center' ? '가운데 영역' : '오른쪽 영역'}
-                    {isOver && ' - 탭을 여기에 드롭하세요'}
+                    {isOver && ' - 탭을 드롭하세요'}
                 </span>
             </div>
         </div>
