@@ -91,7 +91,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         removeTab,
         setActiveTab,
         getSortedTabs,
-        reorderTabs,
         setActiveTabByArea: setStoreActiveTabByArea,
         ensureActiveTabsForAreas,
         activeTabsByArea
@@ -269,19 +268,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                     console.log('상태 업데이트만 실행:', { oldIndex, newIndex, area });
 
-                    // 배열 순서 변경 - 드롭 위치에 따라 삽입 위치 조정
+                    // 배열 순서 변경 - 항상 타겟 탭의 오른쪽에 삽입
                     const [movedTab] = areaItems.splice(oldIndex, 1);
 
-                    // 드래그한 탭이 타겟 탭의 앞에 올지 뒤에 올지 결정
-                    // 보통 마우스 위치나 드래그 방향으로 판단하지만, 
-                    // 간단하게 인덱스 크기로 판단
+                    // 타겟 탭의 오른쪽에 삽입
+                    // oldIndex가 제거되었으므로 newIndex 조정 필요
                     let insertIndex = newIndex;
                     if (oldIndex < newIndex) {
-                        // 뒤쪽으로 이동하는 경우 - 타겟 탭 뒤에 삽입
+                        // 뒤쪽으로 이동: 제거로 인해 인덱스가 1 줄어들었으므로 그대로 사용
                         insertIndex = newIndex;
                     } else {
-                        // 앞쪽으로 이동하는 경우 - 타겟 탭 앞에 삽입
-                        insertIndex = newIndex;
+                        // 앞쪽으로 이동: 타겟 탭의 다음 위치에 삽입
+                        insertIndex = newIndex + 1;
                     }
 
                     areaItems.splice(insertIndex, 0, movedTab);
@@ -382,13 +380,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const toArea = (currentTabAreas.left || []).find(t => t && t.id === targetTabId) ? 'left' :
                 (currentTabAreas.center || []).find(t => t && t.id === targetTabId) ? 'center' : 'right';
 
-            // 다른 영역으로 이동 - 타겟 탭 위치에 삽입
+            // 다른 영역으로 이동 - 타겟 탭의 오른쪽에 삽입
             const targetAreaItems = currentTabAreas[toArea as TabArea] || [];
             const targetIndex = targetAreaItems.findIndex(tab => tab && tab.id === targetTabId);
 
-            console.log('다른 영역 이동:', { fromArea, toArea, targetIndex });
+            // 타겟 탭의 오른쪽에 삽입하려면 인덱스에 1을 더함
+            const insertIndex = targetIndex >= 0 ? targetIndex + 1 : targetAreaItems.length;
 
-            handleTabMove(draggedTabId, fromArea as TabArea, toArea as TabArea, targetIndex);
+            console.log('다른 영역 이동:', { fromArea, toArea, targetIndex, insertIndex });
+
+            handleTabMove(draggedTabId, fromArea as TabArea, toArea as TabArea, insertIndex);
         }
     };
     // 탭 클릭 핸들러
@@ -468,36 +469,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const handleTabReorder = (sourceIndex: number, destinationIndex: number, area: TabArea) => {
         console.log('handleTabReorder 호출:', { sourceIndex, destinationIndex, area });
 
-        if (area === 'left' && (currentTabAreas.left || []).length === (tabs || []).length &&
-            (currentTabAreas.center || []).length === 0 && (currentTabAreas.right || []).length === 0) {
-            // 초기 상태에서는 기존 스토어 사용
-            console.log('스토어 순서 변경 사용');
-            reorderTabs(sourceIndex, destinationIndex);
-        } else {
-            // 분할된 상태에서는 영역별 관리
-            console.log('영역별 순서 변경 사용');
-            setTabAreas(prev => {
-                const newAreas = { ...prev };
-                const areaItems = [...(newAreas[area] || [])];
+        // 모든 경우에 영역별 관리 사용 (전역 reorderTabs 사용하지 않음)
+        console.log('영역별 순서 변경 사용');
+        setTabAreas(prev => {
+            const newAreas = { ...prev };
+            const areaItems = [...(newAreas[area] || [])];
 
-                if (sourceIndex >= 0 && sourceIndex < areaItems.length &&
-                    destinationIndex >= 0 && destinationIndex < areaItems.length) {
-                    const [removed] = areaItems.splice(sourceIndex, 1);
-                    areaItems.splice(destinationIndex, 0, removed);
-                    newAreas[area] = areaItems;
+            if (sourceIndex >= 0 && sourceIndex < areaItems.length &&
+                destinationIndex >= 0 && destinationIndex < areaItems.length) {
+                const [removed] = areaItems.splice(sourceIndex, 1);
+                areaItems.splice(destinationIndex, 0, removed);
+                newAreas[area] = areaItems;
 
-                    console.log('순서 변경 완료:', {
-                        area,
-                        oldOrder: prev[area]?.map(t => t.label),
-                        newOrder: areaItems.map(t => t.label)
-                    });
-                } else {
-                    console.log('잘못된 인덱스:', { sourceIndex, destinationIndex, length: areaItems.length });
-                }
+                console.log('순서 변경 완료:', {
+                    area,
+                    oldOrder: prev[area]?.map(t => t.label),
+                    newOrder: areaItems.map(t => t.label)
+                });
+            } else {
+                console.log('잘못된 인덱스:', { sourceIndex, destinationIndex, length: areaItems.length });
+            }
 
-                return newAreas;
-            });
-        }
+            return newAreas;
+        });
     };
 
     // 탭을 다른 영역으로 이동
@@ -665,8 +659,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const newAreas = { ...prev };
             // 원본 영역에서 탭 제거
             newAreas[currentArea] = (newAreas[currentArea] || []).filter(t => t && t.id !== tabId);
-            // 목표 영역에 탭 추가 (마지막에 추가)
-            newAreas[targetArea] = [...(newAreas[targetArea] || []), tab];
+            // 목표 영역에 탭 추가 (맨 앞에 추가)
+            newAreas[targetArea] = [tab, ...(newAreas[targetArea] || [])];
 
             console.log('탭 영역 업데이트 완료:', newAreas);
             return newAreas;
@@ -736,7 +730,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         // 전역 활성 탭도 설정
         setActiveTab(tabId);
         console.log('탭 활성화:', tabId);
-    };    // 분할 모드 변경 핸들러
+    };
+
+    // 분할 모드 변경 핸들러
     const handleSplitModeChange = (mode: SplitMode) => {
         console.log('분할 모드 변경:', splitMode, '→', mode);
         setSplitMode(mode);
