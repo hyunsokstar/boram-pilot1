@@ -1,38 +1,164 @@
 import { create } from 'zustand';
-import { DynamicTab } from './types';
+import { DynamicTab, TabArea, TabAreas } from './types';
 
 interface TabStore {
-    tabs: DynamicTab[];
+    // 영역별 탭 관리 (단순하게!)
+    tabAreas: TabAreas;
     activeTabId: string | null;
-    // 각 영역별 활성 탭 추적을 위한 상태
-    activeTabsByArea: Record<string, string | null>;
+    activeTabsByArea: Record<TabArea, string | null>;
 
-    // Actions
-    addTab: (tab: Omit<DynamicTab, 'order'>) => void;
+    // 액션들
+    addTab: (tab: DynamicTab, targetArea?: TabArea) => void;
     removeTab: (tabId: string) => void;
+    moveTab: (tabId: string, fromArea: TabArea, toArea: TabArea, targetIndex?: number) => void;
+    reorderTabsInArea: (area: TabArea, sourceIndex: number, destinationIndex: number) => void;
     setActiveTab: (tabId: string | null) => void;
-    reorderTabs: (sourceIndex: number, destinationIndex: number) => void;
-    updateTab: (tabId: string, updates: Partial<DynamicTab>) => void;
+    setActiveTabByArea: (area: TabArea, tabId: string | null) => void;
     clearAllTabs: () => void;
-    // 영역별 활성 탭 관리
-    setActiveTabByArea: (area: string, tabId: string | null) => void;
-    getAllActiveTabIds: () => (string | null)[];
-    // 영역별 자동 활성 탭 설정
-    ensureActiveTabsForAreas: (tabAreas: Record<string, { id: string; [key: string]: unknown }[]>) => void;
-    // Getter
-    getSortedTabs: () => DynamicTab[];
+    
+    // 헬퍼 함수들
+    getTabsForArea: (area: TabArea) => DynamicTab[];
+    getAllTabs: () => DynamicTab[];
+    getAllActiveTabIds: () => string[];
+    findTabById: (tabId: string) => { tab: DynamicTab; area: TabArea } | null;
 }
 
 export const useTabStore = create<TabStore>((set, get) => ({
-    tabs: [],
+    tabAreas: {
+        left: [],
+        center: [],
+        right: []
+    },
     activeTabId: null,
-    activeTabsByArea: {},
-
-    getSortedTabs: () => {
-        const { tabs } = get();
-        return tabs.sort((a, b) => a.order - b.order);
+    activeTabsByArea: {
+        left: null,
+        center: null,
+        right: null
     },
 
+    // 탭 추가 (기본적으로 left 영역에)
+    addTab: (tab, targetArea = 'left') => {
+        const { tabAreas } = get();
+        
+        // 중복 체크
+        const existingTab = get().findTabById(tab.id);
+        if (existingTab) {
+            console.log('기존 탭 활성화:', tab.label);
+            set({ activeTabId: tab.id });
+            get().setActiveTabByArea(existingTab.area, tab.id);
+            return;
+        }
+
+        // 메뉴 번호로 중복 체크
+        const allTabs = get().getAllTabs();
+        const duplicateTab = allTabs.find(t => t.menuNo === tab.menuNo);
+        if (duplicateTab) {
+            console.log('같은 메뉴 탭 활성화:', duplicateTab.label);
+            const existing = get().findTabById(duplicateTab.id);
+            if (existing) {
+                set({ activeTabId: duplicateTab.id });
+                get().setActiveTabByArea(existing.area, duplicateTab.id);
+            }
+            return;
+        }
+
+        // 새 탭을 해당 영역 끝에 추가
+        set(state => ({
+            tabAreas: {
+                ...state.tabAreas,
+                [targetArea]: [...state.tabAreas[targetArea], tab]
+            },
+            activeTabId: tab.id
+        }));
+
+        // 해당 영역의 활성 탭으로 설정
+        get().setActiveTabByArea(targetArea, tab.id);
+        
+        console.log(`새 탭 추가: ${tab.label} → ${targetArea} 영역`);
+    },
+
+    // 탭 제거
+    removeTab: (tabId) => {
+        const tabInfo = get().findTabById(tabId);
+        if (!tabInfo) return;
+
+        const { area } = tabInfo;
+        
+        set(state => {
+            const newTabAreas = { ...state.tabAreas };
+            newTabAreas[area] = newTabAreas[area].filter(tab => tab.id !== tabId);
+            
+            const newActiveTabsByArea = { ...state.activeTabsByArea };
+            if (newActiveTabsByArea[area] === tabId) {
+                // 같은 영역의 첫 번째 탭으로 변경
+                newActiveTabsByArea[area] = newTabAreas[area].length > 0 ? newTabAreas[area][0].id : null;
+            }
+
+            return {
+                tabAreas: newTabAreas,
+                activeTabsByArea: newActiveTabsByArea,
+                activeTabId: state.activeTabId === tabId ? (newActiveTabsByArea[area] || null) : state.activeTabId
+            };
+        });
+
+        console.log(`탭 제거: ${tabInfo.tab.label} from ${area}`);
+    },
+
+    // 탭 이동 (다른 영역으로)
+    moveTab: (tabId, fromArea, toArea, targetIndex) => {
+        const tabInfo = get().findTabById(tabId);
+        if (!tabInfo || tabInfo.area !== fromArea) return;
+
+        const { tab } = tabInfo;
+
+        set(state => {
+            const newTabAreas = { ...state.tabAreas };
+            
+            // 원본 영역에서 제거
+            newTabAreas[fromArea] = newTabAreas[fromArea].filter(t => t.id !== tabId);
+            
+            // 목표 영역에 추가
+            if (targetIndex !== undefined) {
+                // 특정 위치에 삽입
+                newTabAreas[toArea].splice(targetIndex, 0, tab);
+            } else {
+                // 끝에 추가
+                newTabAreas[toArea].push(tab);
+            }
+
+            return { tabAreas: newTabAreas };
+        });
+
+        // 이동된 탭을 해당 영역의 활성 탭으로 설정
+        get().setActiveTabByArea(toArea, tabId);
+        
+        console.log(`탭 이동: ${tab.label} ${fromArea} → ${toArea}`);
+    },
+
+    // 같은 영역 내 순서 변경
+    reorderTabsInArea: (area, sourceIndex, destinationIndex) => {
+        set(state => {
+            const newTabAreas = { ...state.tabAreas };
+            const areaTabs = [...newTabAreas[area]];
+            
+            // 배열 순서 변경
+            const [movedTab] = areaTabs.splice(sourceIndex, 1);
+            areaTabs.splice(destinationIndex, 0, movedTab);
+            
+            newTabAreas[area] = areaTabs;
+            
+            console.log(`${area} 영역 순서 변경: ${sourceIndex} → ${destinationIndex}`);
+            
+            return { tabAreas: newTabAreas };
+        });
+    },
+
+    // 전역 활성 탭 설정
+    setActiveTab: (tabId) => {
+        set({ activeTabId: tabId });
+    },
+
+    // 영역별 활성 탭 설정
     setActiveTabByArea: (area, tabId) => {
         set(state => ({
             activeTabsByArea: {
@@ -42,114 +168,43 @@ export const useTabStore = create<TabStore>((set, get) => ({
         }));
     },
 
+    // 모든 탭 제거
+    clearAllTabs: () => {
+        set({
+            tabAreas: { left: [], center: [], right: [] },
+            activeTabId: null,
+            activeTabsByArea: { left: null, center: null, right: null }
+        });
+    },
+
+    // 특정 영역의 탭들 반환
+    getTabsForArea: (area) => {
+        return get().tabAreas[area];
+    },
+
+    // 모든 탭 반환
+    getAllTabs: () => {
+        const { tabAreas } = get();
+        return [...tabAreas.left, ...tabAreas.center, ...tabAreas.right];
+    },
+
+    // 모든 활성 탭 ID들 반환
     getAllActiveTabIds: () => {
         const { activeTabsByArea } = get();
-        return Object.values(activeTabsByArea).filter(tabId => tabId !== null);
+        return Object.values(activeTabsByArea).filter(Boolean) as string[];
     },
 
-    ensureActiveTabsForAreas: (tabAreas) => {
-        const { activeTabsByArea } = get();
-        const updates: Record<string, string | null> = {};
-        let hasUpdates = false;
-
-        Object.entries(tabAreas).forEach(([area, areaTabs]) => {
-            const currentActiveTab = activeTabsByArea[area];
-            
-            if (areaTabs && areaTabs.length > 0) {
-                // 현재 활성 탭이 없거나, 활성 탭이 더 이상 해당 영역에 없는 경우
-                if (!currentActiveTab || !areaTabs.find(tab => tab && tab.id === currentActiveTab)) {
-                    const newActiveTab = areaTabs[0].id;
-                    console.log(`Zustand: ${area} 영역에 자동 활성 탭 설정:`, newActiveTab);
-                    updates[area] = newActiveTab;
-                    hasUpdates = true;
-                }
+    // 탭 ID로 탭과 영역 찾기
+    findTabById: (tabId) => {
+        const { tabAreas } = get();
+        
+        for (const [area, tabs] of Object.entries(tabAreas) as [TabArea, DynamicTab[]][]) {
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) {
+                return { tab, area };
             }
-        });
-
-        if (hasUpdates) {
-            set(state => ({
-                activeTabsByArea: {
-                    ...state.activeTabsByArea,
-                    ...updates
-                }
-            }));
         }
-    },
-
-    addTab: (newTab) => {
-        const { tabs } = get();
-
-        // 중복 탭 체크 - 항상 새로 추가하도록 변경
-        const existingTabIndex = tabs.findIndex(t => t.menuNo === newTab.menuNo);
-
-        // 기존 탭이 있다면 제거하지 않고 활성화만
-        if (existingTabIndex !== -1) {
-            console.log('기존 탭 활성화:', newTab.menuNo);
-            set({ activeTabId: tabs[existingTabIndex].id });
-            return;
-        }
-
-        // 새 탭 추가
-        const maxOrder = Math.max(...tabs.map(t => t.order), -1);
-        const tabWithOrder: DynamicTab = {
-            ...newTab,
-            order: maxOrder + 1,
-            isClosable: newTab.isClosable ?? true
-        };
-
-        console.log('새 탭 추가:', tabWithOrder);
-        set({
-            tabs: [...tabs, tabWithOrder],
-            activeTabId: newTab.id
-        });
-    },
-
-    removeTab: (tabId) => {
-        const { tabs } = get();
-
-        console.log('탭 삭제:', tabId);
-        console.log('삭제 전 탭들:', tabs.map(t => ({ id: t.id, label: t.label })));
-
-        // 단순히 탭만 삭제 (활성 탭 변경은 레이아웃에서 처리)
-        const filteredTabs = tabs.filter(tab => tab.id !== tabId);
-
-        console.log('삭제 후 탭들:', filteredTabs.map(t => ({ id: t.id, label: t.label })));
-
-        set({
-            tabs: filteredTabs
-            // activeTabId는 여기서 변경하지 않음
-        });
-    },
-
-    setActiveTab: (tabId) => {
-        set({ activeTabId: tabId });
-    },
-
-    reorderTabs: (sourceIndex, destinationIndex) => {
-        const { tabs } = get();
-        const newTabs = Array.from(tabs);
-        const [reorderedTab] = newTabs.splice(sourceIndex, 1);
-        newTabs.splice(destinationIndex, 0, reorderedTab);
-
-        // order 값 재조정
-        const reorderedTabs = newTabs.map((tab, index) => ({
-            ...tab,
-            order: index
-        }));
-
-        set({ tabs: reorderedTabs });
-    },
-
-    updateTab: (tabId, updates) => {
-        const { tabs } = get();
-        const updatedTabs = tabs.map(tab =>
-            tab.id === tabId ? { ...tab, ...updates } : tab
-        );
-
-        set({ tabs: updatedTabs });
-    },
-
-    clearAllTabs: () => {
-        set({ tabs: [], activeTabId: null });
+        
+        return null;
     }
 }));

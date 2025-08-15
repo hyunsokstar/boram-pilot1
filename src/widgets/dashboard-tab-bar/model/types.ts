@@ -29,8 +29,6 @@ export interface DynamicTab {
   isClosable?: boolean;
   /** 탭 활성화 상태 (UI용, 실제 상태는 store에서 관리) */
   isActive?: boolean;
-  /** 탭 정렬 순서 (드래그 앤 드롭용) */
-  order: number;
   /** 스플릿 본문에서 렌더할 뷰 컴포넌트 (클라이언트 전용) */
   view?: ComponentType;
 }

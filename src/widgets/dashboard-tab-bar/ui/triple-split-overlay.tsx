@@ -70,23 +70,26 @@ function TripleSplitZone({ position, isDragActive, isOver = false }: TripleSplit
             ref={setNodeRef}
             className={`
                 absolute ${getPositionStyles()} 
-                border-2 border-dashed transition-all duration-200
-                flex items-center justify-center
+                transition-all duration-200
                 ${isOver
-                    ? 'border-blue-500 bg-blue-100/30 backdrop-blur-sm'
-                    : 'border-gray-400 bg-gray-100/20'
+                    ? 'bg-blue-100/40 backdrop-blur-sm border-2 border-dashed border-blue-500'
+                    : 'bg-transparent'
                 }
             `}
         >
-            <div className={`
-                px-3 py-1.5 rounded-lg font-medium text-sm transition-all duration-200
-                ${isOver
-                    ? 'bg-blue-500 text-white scale-105'
-                    : 'bg-white/80 text-gray-700'
-                }
-            `}>
-                {getLabel()}
-            </div>
+            {/* 호버 시에만 표시되는 드롭 인디케이터 */}
+            {isOver && (
+                <>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-blue-500 text-white px-3 py-1.5 rounded-lg font-medium text-sm shadow-lg scale-105">
+                            {getLabel()}
+                        </div>
+                    </div>
+                    
+                    {/* 전체 영역이 드롭존임을 시각적으로 표시 */}
+                    <div className="absolute inset-2 border-2 border-dashed border-blue-400 rounded-lg bg-blue-50/20" />
+                </>
+            )}
         </div>
     );
 }

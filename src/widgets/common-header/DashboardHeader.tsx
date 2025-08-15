@@ -22,15 +22,16 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const { addTab, tabs, getAllActiveTabIds } = useTabStore();
+    const { addTab, getAllTabs, getAllActiveTabIds } = useTabStore();
 
     // 현재 경로 기반 활성 메뉴
     const currentActiveMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
 
     // Zustand에서 직접 활성 탭 ID들을 가져와서 메뉴 번호로 변환
+    const allTabs = getAllTabs();
     const allActiveTabIds = getAllActiveTabIds().filter(id => id !== null);
     const allActiveMenuNos = allActiveTabIds
-        .map(tabId => tabs.find(tab => tab.id === tabId))
+        .map(tabId => allTabs.find(tab => tab.id === tabId))
         .filter(tab => tab && tab.menuNo)
         .map(tab => tab!.menuNo);
 
@@ -38,8 +39,8 @@ export default function DashboardHeader() {
         currentActiveMenuNo,
         allActiveTabIds,
         allActiveMenuNos,
-        tabsCount: tabs.length,
-        allTabs: tabs.map(t => ({ id: t.id, label: t.label, menuNo: t.menuNo }))
+        tabsCount: allTabs.length,
+        allTabs: allTabs.map(t => ({ id: t.id, label: t.label, menuNo: t.menuNo }))
     });
 
     const onHeaderClick = (menuNo: string, href: string) => {
