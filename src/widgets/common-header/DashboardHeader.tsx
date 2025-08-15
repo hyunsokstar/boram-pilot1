@@ -25,30 +25,23 @@ export default function DashboardHeader() {
     const { user, logout } = useAuthStore();
     const { addTab, tabs, getAllActiveTabIds } = useTabStore();
 
-    // 현재 경로의 활성 메뉴와 모든 영역의 활성 탭 정보
-    const { currentActiveMenuNo, allActiveMenuNos } = useMemo(() => {
-        // 현재 경로 기반 활성 메뉴
-        const currentMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
+    // 현재 경로 기반 활성 메뉴
+    const currentActiveMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
 
-        // 모든 영역의 활성 탭들에서 메뉴 목록 추출
-        const allActiveTabIds = getAllActiveTabIds().filter(id => id !== null);
-        const activeMenuNos = allActiveTabIds
-            .map(tabId => tabs.find(tab => tab.id === tabId))
-            .filter(tab => tab && tab.menuNo)
-            .map(tab => tab!.menuNo);
+    // Zustand에서 직접 활성 탭 ID들을 가져와서 메뉴 번호로 변환
+    const allActiveTabIds = getAllActiveTabIds().filter(id => id !== null);
+    const allActiveMenuNos = allActiveTabIds
+        .map(tabId => tabs.find(tab => tab.id === tabId))
+        .filter(tab => tab && tab.menuNo)
+        .map(tab => tab!.menuNo);
 
-        console.log('Header 활성 탭 계산:', {
-            currentMenuNo,
-            allActiveTabIds,
-            activeMenuNos,
-            tabsCount: tabs.length
-        });
-
-        return {
-            currentActiveMenuNo: currentMenuNo,
-            allActiveMenuNos: activeMenuNos
-        };
-    }, [pathname, tabs, getAllActiveTabIds]);
+    console.log('Header 활성 탭 계산:', {
+        currentActiveMenuNo,
+        allActiveTabIds,
+        allActiveMenuNos,
+        tabsCount: tabs.length,
+        allTabs: tabs.map(t => ({ id: t.id, label: t.label, menuNo: t.menuNo }))
+    });
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정

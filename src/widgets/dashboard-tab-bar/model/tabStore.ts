@@ -17,6 +17,8 @@ interface TabStore {
     // 영역별 활성 탭 관리
     setActiveTabByArea: (area: string, tabId: string | null) => void;
     getAllActiveTabIds: () => (string | null)[];
+    // 영역별 자동 활성 탭 설정
+    ensureActiveTabsForAreas: (tabAreas: Record<string, any[]>) => void;
     // Getter
     getSortedTabs: () => DynamicTab[];
 }
@@ -43,6 +45,35 @@ export const useTabStore = create<TabStore>((set, get) => ({
     getAllActiveTabIds: () => {
         const { activeTabsByArea } = get();
         return Object.values(activeTabsByArea).filter(tabId => tabId !== null);
+    },
+
+    ensureActiveTabsForAreas: (tabAreas) => {
+        const { activeTabsByArea } = get();
+        const updates: Record<string, string | null> = {};
+        let hasUpdates = false;
+
+        Object.entries(tabAreas).forEach(([area, areaTabs]) => {
+            const currentActiveTab = activeTabsByArea[area];
+            
+            if (areaTabs && areaTabs.length > 0) {
+                // 현재 활성 탭이 없거나, 활성 탭이 더 이상 해당 영역에 없는 경우
+                if (!currentActiveTab || !areaTabs.find(tab => tab && tab.id === currentActiveTab)) {
+                    const newActiveTab = areaTabs[0].id;
+                    console.log(`Zustand: ${area} 영역에 자동 활성 탭 설정:`, newActiveTab);
+                    updates[area] = newActiveTab;
+                    hasUpdates = true;
+                }
+            }
+        });
+
+        if (hasUpdates) {
+            set(state => ({
+                activeTabsByArea: {
+                    ...state.activeTabsByArea,
+                    ...updates
+                }
+            }));
+        }
     },
 
     addTab: (newTab) => {

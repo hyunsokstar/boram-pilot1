@@ -43,11 +43,10 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
     return (
         <div
             ref={setNodeRef}
-            className={`h-full transition-all duration-200 rounded-lg ${
-                isOver 
-                    ? 'bg-blue-100/50 border-2 border-dashed border-blue-400 scale-[0.98]' 
-                    : 'bg-transparent'
-            }`}
+            className={`h-full transition-all duration-200 rounded-lg ${isOver
+                ? 'bg-blue-100/50 border-2 border-dashed border-blue-400 scale-[0.98]'
+                : 'bg-transparent'
+                }`}
         >
             {isOver && (
                 <div className="h-full flex items-center justify-center">
@@ -76,13 +75,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [activeDropZone, setActiveDropZone] = useState<DropPosition | null>(null);
     const [draggedTab, setDraggedTab] = useState<{ id: string; label: string } | null>(null);
 
-    // 각 영역별 활성 탭 관리
-    const [activeTabByArea, setActiveTabByArea] = useState<Record<TabArea, string | null>>({
-        left: null,
-        center: null,
-        right: null
-    });
-
     // 드래그 센서 설정
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -102,7 +94,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setActiveTab,
         getSortedTabs,
         reorderTabs,
-        setActiveTabByArea: setStoreActiveTabByArea
+        setActiveTabByArea: setStoreActiveTabByArea,
+        getAllActiveTabIds,
+        ensureActiveTabsForAreas,
+        activeTabsByArea
     } = useTabStore();
 
     // 정렬된 탭 배열 가져오기
@@ -146,25 +141,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     //     [pathname]
     // );
 
-    // 각 영역에 첫 번째 탭이 추가될 때 자동으로 활성화
+    // 탭 영역이 변경될 때마다 Zustand에서 자동으로 활성 탭 설정
     useEffect(() => {
-        (['left', 'center', 'right'] as TabArea[]).forEach(area => {
-            const areaTabs = currentTabAreas[area] || [];
-            const currentActiveTab = activeTabByArea[area];
+        console.log('탭 영역 변경됨, Zustand로 자동 활성 탭 설정');
+        ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, any[]>);
+    }, [currentTabAreas, ensureActiveTabsForAreas]);
 
-            // 해당 영역에 탭이 있지만 활성 탭이 없거나, 활성 탭이 더 이상 해당 영역에 없는 경우
-            if (areaTabs.length > 0 && (!currentActiveTab || !areaTabs.find(tab => tab.id === currentActiveTab))) {
-                const newActiveTab = areaTabs[0].id;
-                setActiveTabByArea(prev => ({
-                    ...prev,
-                    [area]: newActiveTab
-                }));
-                // store 동기화는 useEffect에서 자동으로 처리됨
-            }
-        });
-    }, [currentTabAreas, activeTabByArea]);
-
-    // 헤더 클릭 등으로 전역 activeTabId가 바뀌면 해당 탭이 속한 영역의 활성 탭도 동기화
+    // 전역 activeTabId가 변경되면 해당 탭이 속한 영역에서도 활성화
     useEffect(() => {
         if (!activeTabId) return;
         const inLeft = (currentTabAreas.left || []).some(t => t && t.id === activeTabId);
@@ -173,51 +156,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         const area: TabArea | null = inLeft ? 'left' : inCenter ? 'center' : inRight ? 'right' : null;
         if (area) {
-            setActiveTabByArea(prev => ({
-                ...prev,
-                [area]: activeTabId
-            }));
+            // Zustand 스토어에 직접 설정
+            setStoreActiveTabByArea(area, activeTabId);
         }
-    }, [activeTabId, currentTabAreas]);
+    }, [activeTabId, currentTabAreas, setStoreActiveTabByArea]);
 
-    // activeTabByArea 상태가 변경되면 store에도 자동 동기화
-    useEffect(() => {
-        console.log('activeTabByArea 변경됨, store 동기화:', activeTabByArea);
-        Object.entries(activeTabByArea).forEach(([area, tabId]) => {
-            setStoreActiveTabByArea(area, tabId);
-        });
-    }, [activeTabByArea, setStoreActiveTabByArea]);
-
-    // splitMode가 변경될 때 activeTabByArea 초기화
+    // splitMode가 변경될 때 스토어 상태 정리
     useEffect(() => {
         console.log('splitMode 변경됨:', splitMode);
-        
+
         if (splitMode === 'single') {
-            // 1단 모드: center와 right 영역 초기화, left 영역만 유지
-            setActiveTabByArea(prev => ({
-                left: prev.left,
-                center: null,
-                right: null
-            }));
-            
-            // store도 동기화
+            // 1단 모드: center와 right 영역 초기화
             setStoreActiveTabByArea('center', null);
             setStoreActiveTabByArea('right', null);
-            
         } else if (splitMode === 'double') {
-            // 2단 모드: right 영역 초기화, left와 center 유지
-            setActiveTabByArea(prev => ({
-                ...prev,
-                right: null
-            }));
-            
-            // store도 동기화
+            // 2단 모드: right 영역 초기화
             setStoreActiveTabByArea('right', null);
         }
         // 3단 모드는 모든 영역 유지
-    }, [splitMode, setStoreActiveTabByArea]);
 
-    // 드래그 시작 핸들러
+        // splitMode 변경 후 영역별 자동 활성 탭 설정
+        setTimeout(() => {
+            ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, any[]>);
+        }, 50);
+    }, [splitMode, setStoreActiveTabByArea, currentTabAreas, ensureActiveTabsForAreas]);    // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
         const activeData = active.data?.current;
@@ -312,7 +274,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                     // 배열 순서 변경 - 드롭 위치에 따라 삽입 위치 조정
                     const [movedTab] = areaItems.splice(oldIndex, 1);
-                    
+
                     // 드래그한 탭이 타겟 탭의 앞에 올지 뒤에 올지 결정
                     // 보통 마우스 위치나 드래그 방향으로 판단하지만, 
                     // 간단하게 인덱스 크기로 판단
@@ -324,7 +286,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         // 앞쪽으로 이동하는 경우 - 타겟 탭 앞에 삽입
                         insertIndex = newIndex;
                     }
-                    
+
                     areaItems.splice(insertIndex, 0, movedTab);
 
                     // 상태 업데이트
@@ -343,7 +305,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             console.log('드롭존에 드롭:', position, '탭:', draggedTabId);
             handleDropZoneDrop(draggedTabId, position);
             return;
-        } 
+        }
         // DoubleSplitOverlay 드롭존에 드롭된 경우
         else if (over.id?.toString().startsWith('double-dropzone-')) {
             const position = over.data?.current?.position;
@@ -434,6 +396,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
     // 탭 클릭 핸들러
     const handleTabChange = (tabId: string, area: TabArea) => {
+        console.log('handleTabChange 호출:', { tabId, area, splitMode });
+
         const allTabs = [
             ...(currentTabAreas.left || []),
             ...(currentTabAreas.center || []),
@@ -446,12 +410,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
 
-        // 각 영역별로 활성 탭 설정
-        setActiveTabByArea(prev => ({
-            ...prev,
-            [area]: tabId
-        }));
-        // store 동기화는 useEffect에서 자동으로 처리됨
+        // Zustand 스토어에 직접 설정
+        setStoreActiveTabByArea(area, tabId);
 
         // 전역 활성 탭도 설정 (기존 로직 유지)
         setActiveTab(tabId);
@@ -469,7 +429,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 각 영역의 활성 탭에 따른 컨텐츠 렌더링
     const renderAreaContent = (area: TabArea) => {
-        const activeTabId = activeTabByArea[area];
+        const activeTabId = activeTabsByArea[area];
         const areaTabs = currentTabAreas[area] || [];
 
         if (areaTabs.length === 0) {
@@ -547,8 +507,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const handleTabMove = (tabId: string, fromArea: TabArea, toArea: TabArea, targetIndex?: number) => {
         console.log('handleTabMove 호출:', { tabId, fromArea, toArea, targetIndex });
 
-        // 현재 activeTabByArea 상태 확인
-        const wasActiveInFromArea = activeTabByArea[fromArea] === tabId;
+        // 현재 스토어 상태 확인
+        const wasActiveInFromArea = activeTabsByArea[fromArea] === tabId;
 
         setTabAreas(prev => {
             const newAreas = { ...prev };
@@ -578,24 +538,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return newAreas;
         });
 
-        // activeTabByArea 업데이트
-        setActiveTabByArea(prev => {
-            const newActiveTabByArea = { ...prev };
+        // 스토어에 직접 설정
+        setStoreActiveTabByArea(toArea, tabId);
 
-            // 목표 영역의 활성 탭으로 설정
-            newActiveTabByArea[toArea] = tabId;
-
-            // 원래 영역에서 활성 탭이 이동된 경우 다른 탭으로 교체
-            if (wasActiveInFromArea) {
-                const remainingFromAreaTabs = (currentTabAreas[fromArea] || []).filter(tab => tab && tab.id !== tabId);
-                newActiveTabByArea[fromArea] = remainingFromAreaTabs.length > 0 ? remainingFromAreaTabs[0].id : null;
-
-                console.log('원래 영역 활성 탭 교체:', { fromArea, newActiveTab: newActiveTabByArea[fromArea] });
-            }
-
-            return newActiveTabByArea;
-        });
-        // store 동기화는 useEffect에서 자동으로 처리됨
+        // 원래 영역에서 활성 탭이 이동된 경우 다른 탭으로 교체
+        if (wasActiveInFromArea) {
+            const remainingFromAreaTabs = (currentTabAreas[fromArea] || []).filter(tab => tab && tab.id !== tabId);
+            const newActiveTab = remainingFromAreaTabs.length > 0 ? remainingFromAreaTabs[0].id : null;
+            setStoreActiveTabByArea(fromArea, newActiveTab);
+            console.log('원래 영역 활성 탭 교체:', { fromArea, newActiveTab });
+        }
 
         // 전역 활성 탭도 설정
         setActiveTab(tabId);
@@ -625,7 +577,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             setTabAreas(prev => {
                 const newAreas = { ...prev };
                 const areaItems = [...(newAreas[currentArea] || [])];
-                
+
                 // 해당 탭을 제거하고 맨 끝에 추가
                 const tabIndex = areaItems.findIndex(t => t && t.id === tabId);
                 if (tabIndex !== -1) {
@@ -656,10 +608,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             }
 
             // 이동된 탭을 해당 영역의 활성 탭으로 설정
-            setActiveTabByArea(prev => ({
-                ...prev,
-                [targetArea]: tabId
-            }));
+            setStoreActiveTabByArea(targetArea, tabId);
 
             // 전역 활성 탭도 설정
             setActiveTab(tabId);
@@ -670,7 +619,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 탭바 영역에 탭 드롭 핸들러 (빈 영역에 드롭할 때)
     const handleTabAreaDrop = (tabId: string, targetArea: TabArea) => {
-        console.log('탭바 영역 드롭 처리:', { tabId, targetArea });
+        console.log('탭바 영역 드롭 처리:', { tabId, targetArea, currentSplitMode: splitMode });
+
+        // 단계적 제한 검증
+        if (targetArea === 'center') {
+            if (splitMode === 'single') {
+                console.log('1단 모드에서 center 영역 이동 차단');
+                return; // 1단에서는 center로 이동 불가
+            } else if (splitMode === 'double') {
+                // 2단에서 center로 이동은 허용 (3단으로 전환)
+                console.log('2단 → 3단 전환하여 center 영역으로 이동');
+            }
+        } else if (targetArea === 'right' && splitMode === 'single') {
+            // 1단에서 right로 이동은 허용 (2단으로 전환)
+            console.log('1단 → 2단 전환하여 right 영역으로 이동');
+        }
 
         const allTabs = [...(currentTabAreas.left || []), ...(currentTabAreas.center || []), ...(currentTabAreas.right || [])];
         const tab = allTabs.find(t => t && t.id === tabId);
@@ -693,13 +656,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         // 목표 영역에 따라 분할 모드 자동 조정 (단계별 제한)
         if (targetArea === 'center') {
-            // center 영역은 3단인데, 현재가 single이면 먼저 double로 변경
-            if (splitMode === 'single') {
-                console.log('1단 → 3단 직접 이동 방지, 2단으로 먼저 전환');
-                setSplitMode('double');
-                // center 이동은 취소하고 right로 이동
-                targetArea = 'right';
-            } else if (splitMode === 'double') {
+            if (splitMode === 'double') {
                 setSplitMode('triple');
             }
         } else if ((targetArea === 'left' || targetArea === 'right') && splitMode === 'single') {
@@ -719,11 +676,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         });
 
         // 이동된 탭을 해당 영역의 활성 탭으로 설정
-        setActiveTabByArea(prev => ({
-            ...prev,
-            [targetArea]: tabId
-        }));
-        // store 동기화는 useEffect에서 자동으로 처리됨
+        setStoreActiveTabByArea(targetArea, tabId);
 
         // 전역 활성 탭도 설정
         setActiveTab(tabId);
@@ -781,11 +734,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         });
 
         // 이동된 탭을 해당 영역의 활성 탭으로 설정
-        setActiveTabByArea(prev => ({
-            ...prev,
-            [targetArea]: tabId
-        }));
-        // store 동기화는 useEffect에서 자동으로 처리됨
+        setStoreActiveTabByArea(targetArea, tabId);
 
         // 전역 활성 탭도 설정
         setActiveTab(tabId);
@@ -839,22 +788,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }));
 
         // 각 영역에서 해당 탭이 활성 탭이었다면 다른 탭으로 교체
-        setActiveTabByArea(prev => {
-            const newActiveTabByArea = { ...prev };
-
-            (['left', 'center', 'right'] as TabArea[]).forEach(area => {
-                if (prev[area] === tabId) {
-                    // 해당 영역의 남은 탭들 확인
-                    const remainingAreaTabs = (currentTabAreas[area] || []).filter(tab => tab && tab.id !== tabId);
-                    if (remainingAreaTabs.length > 0) {
-                        newActiveTabByArea[area] = remainingAreaTabs[0].id;
-                    } else {
-                        newActiveTabByArea[area] = null;
-                    }
-                }
-            });
-
-            return newActiveTabByArea;
+        (['left', 'center', 'right'] as TabArea[]).forEach(area => {
+            if (activeTabsByArea[area] === tabId) {
+                // 해당 영역의 남은 탭들 확인
+                const remainingAreaTabs = (currentTabAreas[area] || []).filter(tab => tab && tab.id !== tabId);
+                const newActiveTab = remainingAreaTabs.length > 0 ? remainingAreaTabs[0].id : null;
+                setStoreActiveTabByArea(area, newActiveTab);
+            }
         });
 
         // 활성 탭 처리 (기존 로직 유지)
@@ -902,25 +842,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div className="border-b border-gray-200 bg-white relative">
                                 {/* 확장된 드롭존 영역 - 탭바 위쪽 공간도 포함 */}
                                 <div className="relative">
-                                    {/* 각 영역별 확장 드롭존 */}
+                                    {/* 각 영역별 확장 드롭존 - 분할 모드에 따라 조건부 표시 */}
                                     {isDragActive && (
                                         <div className="absolute top-0 left-0 right-0 h-16 z-20 pointer-events-auto">
-                                            <div className="h-full grid grid-cols-3 gap-1">
-                                                {/* Left 영역 확장 드롭존 */}
-                                                <ExpandedDropZone area="left" />
-                                                {/* Center 영역 확장 드롭존 */}
-                                                <ExpandedDropZone area="center" />
-                                                {/* Right 영역 확장 드롭존 */}
-                                                <ExpandedDropZone area="right" />
-                                            </div>
+                                            {splitMode === 'single' ? (
+                                                <div className="h-full grid grid-cols-2 gap-1">
+                                                    {/* Left 영역 확장 드롭존 */}
+                                                    <ExpandedDropZone area="left" />
+                                                    {/* Right 영역 확장 드롭존 (1단에서는 right로 이동) */}
+                                                    <ExpandedDropZone area="right" />
+                                                </div>
+                                            ) : splitMode === 'double' ? (
+                                                <div className="h-full grid grid-cols-3 gap-1">
+                                                    {/* Left 영역 확장 드롭존 */}
+                                                    <ExpandedDropZone area="left" />
+                                                    {/* Center 영역 확장 드롭존 */}
+                                                    <ExpandedDropZone area="center" />
+                                                    {/* Right 영역 확장 드롭존 */}
+                                                    <ExpandedDropZone area="right" />
+                                                </div>
+                                            ) : (
+                                                <div className="h-full grid grid-cols-3 gap-1">
+                                                    {/* 3단 모드에서는 모든 영역 표시 */}
+                                                    <ExpandedDropZone area="left" />
+                                                    <ExpandedDropZone area="center" />
+                                                    <ExpandedDropZone area="right" />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                    
+
                                     <div className="px-6">
                                         <TabGroup
                                             splitMode={splitMode}
                                             areas={currentTabAreas}
-                                            activeTabByArea={activeTabByArea}
+                                            activeTabByArea={activeTabsByArea}
                                             onTabChange={handleTabChange}
                                             onTabClose={handleTabClose}
                                             onTabReorder={handleTabReorder}

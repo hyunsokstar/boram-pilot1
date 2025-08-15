@@ -59,9 +59,12 @@ export default function TabGroup({
         }
     };
     const getActiveTabForArea = (area: TabArea): string | null => {
-        return activeTabByArea?.[area] || null;
+        const activeTab = activeTabByArea?.[area] || null;
+        console.log(`TabGroup - getActiveTabForArea(${area}):`, activeTab);
+        return activeTab;
     };
     const visibleAreas = getVisibleAreas();
+    console.log('TabGroup 렌더링:', { splitMode, visibleAreas, activeTabByArea });
     return (
         <div className={`flex items-center justify-between ${className}`} style={{
             overflow: 'visible',
