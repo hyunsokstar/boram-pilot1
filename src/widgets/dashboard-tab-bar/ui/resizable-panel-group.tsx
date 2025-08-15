@@ -8,7 +8,6 @@ import {
     PanelResizeHandle,
 } from 'react-resizable-panels';
 import TabBar from './tab-bar';
-import { SplitModeSelect } from './split-mode-select';
 import type { SplitMode, TabArea, TabAreas } from '../model/types';
 
 interface ResizablePanelGroupProps {
@@ -155,30 +154,7 @@ export default function ResizablePanelGroup({
         }
     };
 
-    // 전체 분할 해제 함수 (이전 버전과 호환성을 위해 유지)
-    const handleCloseSplit = () => {
-        // 모든 영역의 탭들을 left 영역으로 이동
-        if (moveTabToArea && getTabsForArea) {
-            // right 영역의 탭들을 left로 이동
-            const rightTabs = getTabsForArea('right');
-            rightTabs.forEach(tab => {
-                moveTabToArea(tab.id, 'right', 'left');
-            });
-
-            // center 영역의 탭들을 left로 이동 (triple 모드인 경우)
-            if (splitMode === 'triple') {
-                const centerTabs = getTabsForArea('center');
-                centerTabs.forEach(tab => {
-                    moveTabToArea(tab.id, 'center', 'left');
-                });
-            }
-        }
-
-        // splitMode를 single로 변경
-        if (onSplitModeChange) {
-            onSplitModeChange('single');
-        }
-    };
+    // 렌더링 시작
 
     // 분할 모드 선택 컴포넌트
     /* 

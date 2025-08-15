@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
 import {
     DndContext,
@@ -23,8 +23,8 @@ import {
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
 import { DoubleSplitOverlay, TripleSplitOverlay, ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
-import type { SplitMode, DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
-import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
+import type { DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
+import { useTabStore, restoreFromLocalStorage } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
 import { NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { useNavStore } from "@/shared/store/navStore";
@@ -62,11 +62,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
 
-    // TabGroup 상태 관리
-    const [splitMode, setSplitMode] = useState<SplitMode>('single');
+    // 드래그 앤 드롭 상태만 로컬로 관리
     const [isDragActive, setIsDragActive] = useState(false);
     const [activeDropZone, setActiveDropZone] = useState<DropPosition | null>(null);
     const [draggedTab, setDraggedTab] = useState<{ id: string; label: string } | null>(null);
+
+    // Zustand 탭 스토어 사용 (splitMode 포함)
+    const {
+        tabAreas,
+        activeTabsByArea,
+        splitMode,
+        removeTab,
+        moveTab: moveTabToArea,
+        reorderTabsInArea,
+        setActiveTab,
+        setActiveTabByArea,
+        setSplitMode,
+        getTabsForArea,
+        findTabById
+    } = useTabStore();
+
+    // 클라이언트에서 localStorage 상태 복원
+    useEffect(() => {
+        restoreFromLocalStorage();
+    }, []);
 
     // 드래그 센서 설정
     const sensors = useSensors(
@@ -79,19 +98,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
-
-    // Zustand 탭 스토어 사용 (간단한 버전)
-    const {
-        tabAreas,
-        activeTabsByArea,
-        removeTab,
-        moveTab: moveTabToArea,
-        reorderTabsInArea,
-        setActiveTab,
-        setActiveTabByArea,
-        getTabsForArea,
-        findTabById
-    } = useTabStore();
 
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
@@ -344,7 +350,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="flex flex-col h-screen bg-gray-50">
                     {/* 헤더 - 전체 상단 */}
                     <DashboardHeader />
-                    
+
                     {/* 본문 영역 - 사이드바 + 메인 콘텐츠 */}
                     <div className="flex flex-1 overflow-hidden">
                         <DashboardSidebar />
