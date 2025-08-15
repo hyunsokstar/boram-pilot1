@@ -341,10 +341,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
             >
-                <div className="flex h-screen bg-gray-50">
-                    <DashboardSidebar />
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <DashboardHeader />
+                <div className="flex flex-col h-screen bg-gray-50">
+                    {/* 헤더 - 전체 상단 */}
+                    <DashboardHeader />
+                    
+                    {/* 본문 영역 - 사이드바 + 메인 콘텐츠 */}
+                    <div className="flex flex-1 overflow-hidden">
+                        <DashboardSidebar />
                         <div className="flex-1 relative">
                             {/* 드래그 시 오버레이 (배경 그리드) */}
                             {isDragActive && (

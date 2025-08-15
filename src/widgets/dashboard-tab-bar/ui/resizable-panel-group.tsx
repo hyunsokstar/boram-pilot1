@@ -110,9 +110,10 @@ function IntegratedPanel({
                 {showCloseButton && onClosePanel && (
                     <button
                         onClick={onClosePanel}
-                        className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center 
-                                 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 
-                                 transition-colors duration-200 text-sm font-bold"
+                        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center 
+                                 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-600 
+                                 transition-colors duration-200 text-lg font-bold z-10
+                                 border border-gray-200 hover:border-red-300 bg-white shadow-sm"
                         title="분할 해제"
                     >
                         ×
