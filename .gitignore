@@ -38,4 +38,4 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+# next-env.d.ts  # 다른 환경에서 TypeScript 오류 방지를 위해 포함
