@@ -22,6 +22,7 @@ export interface TabGroupProps {
     onDropZoneDrop?: (tabId: string, position: 'left' | 'center' | 'right') => void;
     onDragStateChange?: (isDragActive: boolean, activeDropZone: 'left' | 'center' | 'right' | null) => void;
     onSplitModeChange?: (mode: SplitMode) => void;
+    onAreaClose?: (area: TabArea) => void;
     className?: string;
 }
 
@@ -36,6 +37,7 @@ export default function TabGroup({
     // onDropZoneDrop, // 현재 사용되지 않음
     // onDragStateChange, // 현재 사용되지 않음
     onSplitModeChange,
+    onAreaClose,
     className = ""
 }: TabGroupProps) {
     const getGridClass = () => {
@@ -89,6 +91,7 @@ export default function TabGroup({
                                 onTabClose={onTabClose}
                                 onTabReorder={(sourceIndex, destinationIndex) => onTabReorder?.(sourceIndex, destinationIndex, area)}
                                 area={area}
+                                onAreaClose={onAreaClose}
                             />
                         </div>
                     ))}

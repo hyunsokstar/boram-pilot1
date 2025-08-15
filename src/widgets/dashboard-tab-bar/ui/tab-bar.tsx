@@ -5,11 +5,12 @@
 
 "use client";
 
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import DraggableTab from './draggable-tab';
 import type { TabArea } from '../model/types';
+import { ChevronLeft, ChevronRight, Minus } from 'lucide-react';
 
 /**
  * 탭바에서 사용하는 탭 아이템 타입
@@ -39,6 +40,8 @@ export interface TabBarProps {
     onTabReorder?: (sourceIndex: number, destinationIndex: number) => void;
     /** 탭이 속한 영역 (TabGroup에서 사용) */
     area?: TabArea;
+    /** 영역 닫기 핸들러 */
+    onAreaClose?: (area: TabArea) => void;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -70,8 +73,13 @@ export default function TabBar({
     onTabClose,
     // onTabReorder, // 현재 사용되지 않음
     area,
+    onAreaClose,
     className = ""
 }: TabBarProps) {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
     // 탭바 영역을 드롭존으로 설정
     const { setNodeRef: setDropRef, isOver } = useDroppable({
         id: `tab-area-${area}`,
@@ -80,6 +88,46 @@ export default function TabBar({
             area: area,
         },
     });
+
+    // 스크롤 상태 업데이트
+    const updateScrollButtons = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
+        }
+    };
+
+    // 컴포넌트 마운트 및 탭 변경 시 스크롤 상태 업데이트
+    useEffect(() => {
+        updateScrollButtons();
+        const container = scrollContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', updateScrollButtons);
+            return () => container.removeEventListener('scroll', updateScrollButtons);
+        }
+    }, [tabs]);
+
+    // 왼쪽 스크롤
+    const scrollLeft = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+        }
+    };
+
+    // 오른쪽 스크롤
+    const scrollRight = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+        }
+    };
+
+    // 영역 닫기
+    const handleAreaClose = () => {
+        if (area && onAreaClose) {
+            onAreaClose(area);
+        }
+    };
 
     console.log('TabBar 렌더링:', { area, droppableId: `tab-area-${area}`, tabs: tabs.length, isOver });
 
@@ -161,14 +209,39 @@ export default function TabBar({
                 </div>
             )}
 
+            {/* 왼쪽 스크롤 버튼 */}
+            {canScrollLeft && (
+                <button
+                    onClick={scrollLeft}
+                    className="absolute left-1 top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
+                    title="왼쪽으로 스크롤"
+                >
+                    <ChevronLeft className="w-3.5 h-3.5 text-gray-700" />
+                </button>
+            )}
+
+            {/* 영역 닫기 버튼 */}
+            {area && onAreaClose && (
+                <button
+                    onClick={handleAreaClose}
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-all duration-200"
+                    title="영역 닫기"
+                >
+                    <Minus className="w-3.5 h-3.5 text-gray-600 hover:text-red-600" />
+                </button>
+            )}
+
             <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
-                <nav
-                    className="flex gap-1 relative z-20 h-full items-center"
-                    aria-label="Tabs"
-                    role="tablist"
+                {/* 탭 컨테이너 */}
+                <div
+                    ref={scrollContainerRef}
+                    className="flex gap-1 h-full items-center overflow-x-auto scrollbar-hide"
                     style={{
-                        overflow: 'visible',
-                        position: 'relative'
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        marginLeft: canScrollLeft ? '36px' : '8px',
+                        marginRight: (area && onAreaClose) ? '36px' : (canScrollRight ? '36px' : '8px'),
+                        paddingRight: canScrollRight ? '36px' : '0',
                     }}
                 >
                     {tabs.map((tab) => (
@@ -183,8 +256,26 @@ export default function TabBar({
                             area={area}
                         />
                     ))}
-                </nav>
+                </div>
             </SortableContext>
+
+            {/* 오른쪽 스크롤 버튼 */}
+            {canScrollRight && (
+                <button
+                    onClick={scrollRight}
+                    className="absolute top-1/2 transform -translate-y-1/2 z-40 p-1.5 bg-white shadow-lg rounded-full hover:bg-gray-50 border border-gray-200 transition-all duration-200"
+                    style={{ right: (area && onAreaClose) ? '44px' : '8px' }}
+                    title="오른쪽으로 스크롤"
+                >
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
+                </button>
+            )}
+
+            <style jsx>{`
+                .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
         </div>
     );
 }
