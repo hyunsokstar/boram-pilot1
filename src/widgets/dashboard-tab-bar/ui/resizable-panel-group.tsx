@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import {
     Panel,
     PanelGroup,
@@ -24,14 +25,45 @@ interface ResizablePanelGroupProps {
     getTabsForArea?: (area: TabArea) => Array<{ id: string; label: string; href?: string; menuNo?: string; view?: React.ComponentType }>;
 }
 
+// 빈 헤더 드롭존 컴포넌트
+function EmptyHeaderDropZone({ area }: { area: TabArea }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `header-dropzone-${area}`,
+        data: {
+            type: 'tab-area',
+            area: area,
+        },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`h-12 flex items-center px-3 text-sm transition-all duration-200 ${isOver
+                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-400'
+                    : 'text-gray-400'
+                }`}
+        >
+            <div className="flex items-center gap-2">
+                {isOver && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                )}
+                <span>
+                    {area === 'left' ? '왼쪽 영역' : area === 'center' ? '가운데 영역' : '오른쪽 영역'}
+                    {isOver && ' - 탭을 여기에 드롭하세요'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 // 개별 패널 컴포넌트 (탭바 + 콘텐츠)
-function IntegratedPanel({ 
-    area, 
-    isDragActive, 
-    tabAreas, 
-    activeTabsByArea, 
-    onTabChange, 
-    onTabClose, 
+function IntegratedPanel({
+    area,
+    isDragActive,
+    tabAreas,
+    activeTabsByArea,
+    onTabChange,
+    onTabClose,
     renderAreaContent,
     ExpandedDropZone,
     showCloseButton = false,
@@ -53,9 +85,9 @@ function IntegratedPanel({
 
     return (
         <div className="h-full flex flex-col bg-white">
-            {/* 탭바 */}
-            {areaTabs.length > 0 && (
-                <div className="flex-shrink-0 border-b border-gray-200 relative">
+            {/* 탭바 또는 빈 헤더 */}
+            <div className="flex-shrink-0 border-b border-gray-200 relative">
+                {areaTabs.length > 0 ? (
                     <TabBar
                         tabs={areaTabs}
                         activeTab={activeTab}
@@ -63,21 +95,25 @@ function IntegratedPanel({
                         onTabClose={onTabClose}
                         area={area}
                     />
-                    {/* 분할 해제 버튼 */}
-                    {showCloseButton && onClosePanel && (
-                        <button
-                            onClick={onClosePanel}
-                            className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center 
-                                     hover:bg-red-100 rounded text-gray-400 hover:text-red-600 
-                                     transition-colors duration-200 text-sm font-bold"
-                            title="분할 해제"
-                        >
-                            ×
-                        </button>
-                    )}
-                </div>
-            )}
-            
+                ) : (
+                    /* 빈 헤더 드롭존 */
+                    <EmptyHeaderDropZone area={area} />
+                )}
+
+                {/* 분할 해제 버튼 */}
+                {showCloseButton && onClosePanel && (
+                    <button
+                        onClick={onClosePanel}
+                        className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center 
+                                 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 
+                                 transition-colors duration-200 text-sm font-bold"
+                        title="분할 해제"
+                    >
+                        ×
+                    </button>
+                )}
+            </div>
+
             {/* 콘텐츠 영역 */}
             <div className="flex-1 min-h-0">
                 {isDragActive ? (
