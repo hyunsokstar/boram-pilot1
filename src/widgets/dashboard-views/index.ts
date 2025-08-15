@@ -3,6 +3,7 @@
 import type { ComponentType } from "react";
 import { MemberView } from "./member";
 import { PaymentView } from "./payment";
+import SystemDashboardView from "./system";
 import { makeScaffoldView } from "./scaffold";
 
 // 미구현 화면은 스캐폴드로 제공, 구현되면 해당 View로 교체
@@ -38,6 +39,7 @@ export const views: ViewMap = {
   "crm": CRMView,
   "event": EventView,
   // system
+  "system": SystemDashboardView,
   "system/common-code": SystemCommonCodeView,
   "system/finance-code": SystemFinanceCodeView,
   "system/region-code": SystemRegionCodeView,

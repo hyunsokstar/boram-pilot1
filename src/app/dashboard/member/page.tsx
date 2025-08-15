@@ -1,5 +1,6 @@
-import { MemberView } from "@/widgets/dashboard-views/member";
+"use client";
+import { DashboardViewRenderer } from "@/components/DashboardViewRenderer";
 
 export default function MemberPage() {
-    return <MemberView />;
+    return <DashboardViewRenderer viewKey="member" />;
 }

@@ -109,10 +109,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }, [tabs, tabAreas]);
 
     // 현재 활성 탭 계산
-    const activeTopNo = useMemo(
-        () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
-        [pathname]
-    );
+    // const activeTopNo = useMemo(
+    //     () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
+    //     [pathname]
+    // );
 
     // 각 영역에 첫 번째 탭이 추가될 때 자동으로 활성화
     useEffect(() => {
@@ -530,7 +530,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 console.log('분할 모드 변경: single → double');
             }
         } else if (position === 'center') {
-            nextSplitMode = 'triple';
+            // nextSplitMode = 'triple';
             setSplitMode('triple');
             console.log('분할 모드 변경: → triple');
         }

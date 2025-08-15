@@ -72,7 +72,7 @@ export default function TabGroup({
     onTabClose,
     onTabReorder,
     onTabMove,
-    onDropZoneDrop,
+    // onDropZoneDrop, // 현재 사용되지 않음
     onDragStateChange,
     onSplitModeChange,
     className = ""

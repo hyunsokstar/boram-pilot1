@@ -68,7 +68,7 @@ export default function TabBar({
     activeTab,
     onTabChange,
     onTabClose,
-    onTabReorder,
+    // onTabReorder, // 현재 사용되지 않음
     area,
     className = ""
 }: TabBarProps) {

@@ -1,5 +1,6 @@
-import { PaymentView } from "@/widgets/dashboard-views/payment";
+"use client";
+import { DashboardViewRenderer } from "@/components/DashboardViewRenderer";
 
 export default function PaymentPage() {
-    return <PaymentView />;
+    return <DashboardViewRenderer viewKey="payment" />;
 }

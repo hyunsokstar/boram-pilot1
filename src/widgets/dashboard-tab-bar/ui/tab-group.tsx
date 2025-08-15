@@ -32,9 +32,9 @@ export default function TabGroup({
     onTabChange,
     onTabClose,
     onTabReorder,
-    onTabMove,
-    onDropZoneDrop,
-    onDragStateChange,
+    // onTabMove, // 현재 사용되지 않음
+    // onDropZoneDrop, // 현재 사용되지 않음
+    // onDragStateChange, // 현재 사용되지 않음
     onSplitModeChange,
     className = ""
 }: TabGroupProps) {
@@ -59,25 +59,25 @@ export default function TabGroup({
     };
     const visibleAreas = getVisibleAreas();
     return (
-        <div className={`flex items-center justify-between ${className}`} style={{ 
-            overflow: 'visible', 
+        <div className={`flex items-center justify-between ${className}`} style={{
+            overflow: 'visible',
             position: 'relative',
             zIndex: 1
         }}>
-            <div className="flex-1 min-w-0" style={{ 
-                overflow: 'visible', 
+            <div className="flex-1 min-w-0" style={{
+                overflow: 'visible',
                 position: 'relative'
             }}>
-                <div className={`grid ${getGridClass()} gap-1`} style={{ 
-                    overflow: 'visible', 
+                <div className={`grid ${getGridClass()} gap-1`} style={{
+                    overflow: 'visible',
                     position: 'relative'
                 }}>
                     {visibleAreas.map((area) => (
-                        <div 
-                            key={area} 
-                            className="min-w-0" 
-                            style={{ 
-                                overflow: 'visible', 
+                        <div
+                            key={area}
+                            className="min-w-0"
+                            style={{
+                                overflow: 'visible',
                                 position: 'relative',
                                 zIndex: 1
                             }}
