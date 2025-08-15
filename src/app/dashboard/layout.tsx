@@ -14,7 +14,8 @@ import {
     DragOverlay,
     DragStartEvent,
     DragEndEvent,
-    DragOverEvent
+    DragOverEvent,
+    useDroppable
 } from '@dnd-kit/core';
 import {
     sortableKeyboardCoordinates,
@@ -28,6 +29,36 @@ import { ProtectedRoute } from "@/shared/ui";
 import { NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
+
+// 확장된 드롭존 컴포넌트
+function ExpandedDropZone({ area }: { area: TabArea }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `expanded-tab-area-${area}`,
+        data: {
+            type: 'tab-area',
+            area: area,
+        },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`h-full transition-all duration-200 rounded-lg ${
+                isOver 
+                    ? 'bg-blue-100/50 border-2 border-dashed border-blue-400 scale-[0.98]' 
+                    : 'bg-transparent'
+            }`}
+        >
+            {isOver && (
+                <div className="h-full flex items-center justify-center">
+                    <div className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
+                        {area === 'left' ? '왼쪽' : area === 'center' ? '가운데' : '오른쪽'} 영역에 드롭
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
@@ -236,9 +267,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                     console.log('상태 업데이트만 실행:', { oldIndex, newIndex, area });
 
-                    // 배열 순서 변경
+                    // 배열 순서 변경 - 드롭 위치에 따라 삽입 위치 조정
                     const [movedTab] = areaItems.splice(oldIndex, 1);
-                    areaItems.splice(newIndex, 0, movedTab);
+                    
+                    // 드래그한 탭이 타겟 탭의 앞에 올지 뒤에 올지 결정
+                    // 보통 마우스 위치나 드래그 방향으로 판단하지만, 
+                    // 간단하게 인덱스 크기로 판단
+                    let insertIndex = newIndex;
+                    if (oldIndex < newIndex) {
+                        // 뒤쪽으로 이동하는 경우 - 타겟 탭 뒤에 삽입
+                        insertIndex = newIndex;
+                    } else {
+                        // 앞쪽으로 이동하는 경우 - 타겟 탭 앞에 삽입
+                        insertIndex = newIndex;
+                    }
+                    
+                    areaItems.splice(insertIndex, 0, movedTab);
 
                     // 상태 업데이트
                     setTabAreas(prev => ({
@@ -258,11 +302,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
 
-        // 탭바 영역에 드롭된 경우
+        // 탭바 영역에 드롭된 경우 (기존 탭바 또는 확장된 드롭존)
         if (over.data?.current?.type === 'tab-area') {
             const targetArea = over.data.current.area as TabArea;
             console.log('탭바 영역에 드롭:', targetArea, '탭:', draggedTabId);
             handleTabAreaDrop(draggedTabId, targetArea);
+            return;
+        }
+
+        // 탭 리스트 끝에 드롭된 경우 (맨 끝으로 이동)
+        if (over.data?.current?.type === 'tab-end') {
+            const targetArea = over.data.current.area as TabArea;
+            console.log('탭 리스트 끝에 드롭:', targetArea, '탭:', draggedTabId);
+            handleTabMoveToEnd(draggedTabId, targetArea);
             return;
         }
 
@@ -490,6 +542,71 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         console.log('handleTabMove 완료: store 동기화됨', { toArea, tabId, wasActiveInFromArea });
     };
 
+    // 탭을 특정 영역의 맨 끝으로 이동
+    const handleTabMoveToEnd = (tabId: string, targetArea: TabArea) => {
+        console.log('handleTabMoveToEnd 호출:', { tabId, targetArea });
+
+        const allTabs = [...(currentTabAreas.left || []), ...(currentTabAreas.center || []), ...(currentTabAreas.right || [])];
+        const tab = allTabs.find(t => t && t.id === tabId);
+        if (!tab) {
+            console.log('탭을 찾을 수 없음:', tabId);
+            return;
+        }
+
+        // 현재 탭이 어느 영역에 있는지 찾기
+        const currentArea = (currentTabAreas.left || []).find(t => t && t.id === tabId) ? 'left' :
+            (currentTabAreas.center || []).find(t => t && t.id === tabId) ? 'center' : 'right';
+
+        console.log('탭을 맨 끝으로 이동:', { from: currentArea, to: targetArea });
+
+        // 같은 영역이면 맨 끝으로 이동
+        if (currentArea === targetArea) {
+            setTabAreas(prev => {
+                const newAreas = { ...prev };
+                const areaItems = [...(newAreas[currentArea] || [])];
+                
+                // 해당 탭을 제거하고 맨 끝에 추가
+                const tabIndex = areaItems.findIndex(t => t && t.id === tabId);
+                if (tabIndex !== -1) {
+                    const [movedTab] = areaItems.splice(tabIndex, 1);
+                    areaItems.push(movedTab); // 맨 끝에 추가
+                    newAreas[currentArea] = areaItems;
+                }
+
+                return newAreas;
+            });
+        } else {
+            // 다른 영역으로 이동하면서 맨 끝에 배치
+            setTabAreas(prev => {
+                const newAreas = { ...prev };
+                // 원본 영역에서 탭 제거
+                newAreas[currentArea] = (newAreas[currentArea] || []).filter(t => t && t.id !== tabId);
+                // 목표 영역의 맨 끝에 탭 추가
+                newAreas[targetArea] = [...(newAreas[targetArea] || []), tab];
+
+                return newAreas;
+            });
+
+            // 분할 모드 자동 조정
+            if (targetArea === 'center' && splitMode !== 'triple') {
+                setSplitMode('triple');
+            } else if ((targetArea === 'left' || targetArea === 'right') && splitMode === 'single') {
+                setSplitMode('double');
+            }
+
+            // 이동된 탭을 해당 영역의 활성 탭으로 설정
+            setActiveTabByArea(prev => ({
+                ...prev,
+                [targetArea]: tabId
+            }));
+
+            // 전역 활성 탭도 설정
+            setActiveTab(tabId);
+        }
+
+        console.log('handleTabMoveToEnd 완료');
+    };
+
     // 탭바 영역에 탭 드롭 핸들러 (빈 영역에 드롭할 때)
     const handleTabAreaDrop = (tabId: string, targetArea: TabArea) => {
         console.log('탭바 영역 드롭 처리:', { tabId, targetArea });
@@ -709,20 +826,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         onDragEnd={handleDragEnd}
                     >
                         <div className="flex-1 bg-white flex flex-col relative">
-                            {/* 탭바 영역 */}
-                            <div className="border-b border-gray-200 bg-white">
-                                <div className="px-6">
-                                    <TabGroup
-                                        splitMode={splitMode}
-                                        areas={currentTabAreas}
-                                        activeTabByArea={activeTabByArea}
-                                        onTabChange={handleTabChange}
-                                        onTabClose={handleTabClose}
-                                        onTabReorder={handleTabReorder}
-                                        onTabMove={handleTabMove}
-                                        onDropZoneDrop={handleDropZoneDrop}
-                                        onSplitModeChange={handleSplitModeChange}
-                                    />
+                            {/* 탭바 영역 - 확장된 드롭존 포함 */}
+                            <div className="border-b border-gray-200 bg-white relative">
+                                {/* 확장된 드롭존 영역 - 탭바 위쪽 공간도 포함 */}
+                                <div className="relative">
+                                    {/* 각 영역별 확장 드롭존 */}
+                                    {isDragActive && (
+                                        <div className="absolute top-0 left-0 right-0 h-16 z-20 pointer-events-auto">
+                                            <div className="h-full grid grid-cols-3 gap-1">
+                                                {/* Left 영역 확장 드롭존 */}
+                                                <ExpandedDropZone area="left" />
+                                                {/* Center 영역 확장 드롭존 */}
+                                                <ExpandedDropZone area="center" />
+                                                {/* Right 영역 확장 드롭존 */}
+                                                <ExpandedDropZone area="right" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="px-6">
+                                        <TabGroup
+                                            splitMode={splitMode}
+                                            areas={currentTabAreas}
+                                            activeTabByArea={activeTabByArea}
+                                            onTabChange={handleTabChange}
+                                            onTabClose={handleTabClose}
+                                            onTabReorder={handleTabReorder}
+                                            onTabMove={handleTabMove}
+                                            onDropZoneDrop={handleDropZoneDrop}
+                                            onSplitModeChange={handleSplitModeChange}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

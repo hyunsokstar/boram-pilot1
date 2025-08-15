@@ -12,6 +12,36 @@ import DraggableTab from './draggable-tab';
 import type { TabArea } from '../model/types';
 import { ChevronLeft, ChevronRight, Minus } from 'lucide-react';
 
+// 탭 리스트 끝에 위치하는 드롭존 컴포넌트
+function EndDropZone({ area }: { area?: TabArea }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `tab-end-${area}`,
+        data: {
+            type: 'tab-end',
+            area: area,
+        },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`
+                flex-shrink-0 w-8 h-8 mx-1 transition-all duration-200 rounded
+                ${isOver
+                    ? 'bg-blue-100 border-2 border-dashed border-blue-400'
+                    : 'bg-transparent border-2 border-dashed border-transparent hover:border-gray-300'
+                }
+            `}
+        >
+            {isOver && (
+                <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-1 h-4 bg-blue-500 rounded"></div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 /**
  * 탭바에서 사용하는 탭 아이템 타입
  */
@@ -256,6 +286,9 @@ export default function TabBar({
                             area={area}
                         />
                     ))}
+
+                    {/* 맨 끝으로 이동할 수 있는 드롭존 */}
+                    <EndDropZone area={area} />
                 </div>
             </SortableContext>
 
