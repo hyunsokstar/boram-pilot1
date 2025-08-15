@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
-import { TabGroup, DoubleSplitOverlay, TripleSplitOverlay, ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
+import { DoubleSplitOverlay, TripleSplitOverlay, ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
 import type { SplitMode, DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
@@ -84,7 +84,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const {
         tabAreas,
         activeTabsByArea,
-        addTab,
         removeTab,
         moveTab: moveTabToArea,
         reorderTabsInArea,

@@ -38,8 +38,6 @@ export const useTabStore = create<TabStore>((set, get) => ({
 
     // 탭 추가 (기본적으로 left 영역에)
     addTab: (tab, targetArea = 'left') => {
-        const { tabAreas } = get();
-        
         // 중복 체크
         const existingTab = get().findTabById(tab.id);
         if (existingTab) {
