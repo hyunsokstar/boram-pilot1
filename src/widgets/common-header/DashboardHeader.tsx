@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
+import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
 import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { useAuthStore } from "@/shared/store/authStore";
@@ -41,12 +42,15 @@ export default function DashboardHeader() {
         // 탭 추가 (Zustand 스토어 사용)
         const headerMenu = headerMenus.find(menu => menu.menuNo === menuNo);
         if (headerMenu) {
+            const View = resolveViewByHref(headerMenu.href || undefined) || undefined;
             addTab({
                 id: headerMenu.menuNo,
                 label: headerMenu.label,
                 href: headerMenu.href,
                 menuNo: headerMenu.menuNo,
-                isClosable: true
+                isClosable: true,
+                // 스플릿 렌더링 단순화를 위해 뷰를 탭에 포함
+                view: View
             });
         }
 

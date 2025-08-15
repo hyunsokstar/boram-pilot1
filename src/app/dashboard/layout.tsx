@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
 import {
     DndContext,
     closestCenter,
@@ -43,6 +44,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isDragActive, setIsDragActive] = useState(false);
     const [activeDropZone, setActiveDropZone] = useState<DropPosition | null>(null);
     const [draggedTab, setDraggedTab] = useState<{ id: string; label: string } | null>(null);
+
+    // 각 영역별 활성 탭 관리
+    const [activeTabByArea, setActiveTabByArea] = useState<Record<TabArea, string | null>>({
+        left: null,
+        center: null,
+        right: null
+    });
 
     // 드래그 센서 설정
     const sensors = useSensors(
@@ -105,6 +113,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
         [pathname]
     );
+
+    // 각 영역에 첫 번째 탭이 추가될 때 자동으로 활성화
+    useEffect(() => {
+        (['left', 'center', 'right'] as TabArea[]).forEach(area => {
+            const areaTabs = currentTabAreas[area] || [];
+            const currentActiveTab = activeTabByArea[area];
+
+            // 해당 영역에 탭이 있지만 활성 탭이 없거나, 활성 탭이 더 이상 해당 영역에 없는 경우
+            if (areaTabs.length > 0 && (!currentActiveTab || !areaTabs.find(tab => tab.id === currentActiveTab))) {
+                setActiveTabByArea(prev => ({
+                    ...prev,
+                    [area]: areaTabs[0].id
+                }));
+            }
+        });
+    }, [currentTabAreas, activeTabByArea]);
 
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
@@ -282,6 +306,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
 
+        // 각 영역별로 활성 탭 설정
+        setActiveTabByArea(prev => ({
+            ...prev,
+            [area]: tabId
+        }));
+
+        // 전역 활성 탭도 설정 (기존 로직 유지)
         setActiveTab(tabId);
         setFilteredTop(selectedTab.menuNo || '');
 
@@ -289,9 +320,50 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo: selectedTab.menuNo } }));
         }
 
-        if (selectedTab.href && selectedTab.href.trim() !== "") {
+        // 분할 모드가 single인 경우에만 실제 라우팅 수행
+        if (splitMode === 'single' && selectedTab.href && selectedTab.href.trim() !== "") {
             router.push(selectedTab.href);
         }
+    };
+
+    // 각 영역의 활성 탭에 따른 컨텐츠 렌더링
+    const renderAreaContent = (area: TabArea) => {
+        const activeTabId = activeTabByArea[area];
+        const areaTabs = currentTabAreas[area] || [];
+
+        if (areaTabs.length === 0) {
+            const areaNames = {
+                left: splitMode === 'single' ? '헤더 메뉴를 클릭하여 탭을 추가하세요' : 'Left 영역에 탭을 드래그하세요',
+                center: 'Center 영역에 탭을 드래그하세요',
+                right: 'Right 영역에 탭을 드래그하세요'
+            };
+            return <div className="p-8 text-gray-400 text-center">{areaNames[area]}</div>;
+        }
+
+        // 활성 탭이 없으면 첫 번째 탭을 기본으로 표시
+        const displayTabId = activeTabId || areaTabs[0]?.id;
+        const activeTab = areaTabs.find(tab => tab && tab.id === displayTabId);
+
+        if (!activeTab) {
+            return <div className="p-8 text-gray-400 text-center">탭을 선택하세요</div>;
+        }
+
+        // single 모드에서는 기존 children 사용
+        if (splitMode === 'single') {
+            return children;
+        }
+
+    // 분할 모드에서는 탭에 포함된 view 우선 렌더링, 없으면 href 기반 레지스트리 조회
+    const Comp = activeTab.view || resolveViewByHref(activeTab.href);
+    if (Comp) return <Comp />;
+
+        // href가 없으면 기본 메시지 표시
+        return (
+            <div className="p-8 text-gray-400 text-center">
+                <div className="text-lg font-medium text-gray-600 mb-2">{activeTab.label}</div>
+                <div>이 탭에는 컨텐츠가 설정되지 않았습니다.</div>
+            </div>
+        );
     };
 
     // 탭 순서 변경 핸들러
@@ -405,7 +477,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return newAreas;
         });
 
-        // 이동된 탭을 활성화
+        // 이동된 탭을 해당 영역의 활성 탭으로 설정
+        setActiveTabByArea(prev => ({
+            ...prev,
+            [targetArea]: tabId
+        }));
+
+        // 전역 활성 탭도 설정
         setActiveTab(tabId);
     };
 
@@ -457,7 +535,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return newAreas;
         });
 
-        // 이동된 탭을 활성화
+        // 이동된 탭을 해당 영역의 활성 탭으로 설정
+        setActiveTabByArea(prev => ({
+            ...prev,
+            [targetArea]: tabId
+        }));
+
+        // 전역 활성 탭도 설정
         setActiveTab(tabId);
         console.log('탭 활성화:', tabId);
     };    // 분할 모드 변경 핸들러
@@ -508,6 +592,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             right: (prev.right || []).filter(tab => tab && tab.id !== tabId)
         }));
 
+        // 각 영역에서 해당 탭이 활성 탭이었다면 다른 탭으로 교체
+        setActiveTabByArea(prev => {
+            const newActiveTabByArea = { ...prev };
+
+            (['left', 'center', 'right'] as TabArea[]).forEach(area => {
+                if (prev[area] === tabId) {
+                    // 해당 영역의 남은 탭들 확인
+                    const remainingAreaTabs = (currentTabAreas[area] || []).filter(tab => tab && tab.id !== tabId);
+                    if (remainingAreaTabs.length > 0) {
+                        newActiveTabByArea[area] = remainingAreaTabs[0].id;
+                    } else {
+                        newActiveTabByArea[area] = null;
+                    }
+                }
+            });
+
+            return newActiveTabByArea;
+        });
+
         // 활성 탭 처리 (기존 로직 유지)
         if (isActiveTab) {
             const remainingTabs = allTabs.filter(tab => tab && tab.id !== tabId);
@@ -555,18 +658,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     <TabGroup
                                         splitMode={splitMode}
                                         areas={currentTabAreas}
-                                        activeTabByArea={{
-                                            left: activeTopNo || null,
-                                            center: null,
-                                            right: null
-                                        }}
+                                        activeTabByArea={activeTabByArea}
                                         onTabChange={handleTabChange}
                                         onTabClose={handleTabClose}
                                         onTabReorder={handleTabReorder}
                                         onTabMove={handleTabMove}
                                         onDropZoneDrop={handleDropZoneDrop}
                                         onSplitModeChange={handleSplitModeChange}
-                                    // DndContext를 상위로 옮겼으므로 필요 없음
                                     />
                                 </div>
                             </div>
@@ -583,31 +681,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     }`} style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
                                     {splitMode === 'single' ? (
                                         <div className="overflow-auto h-full">
-                                            {currentTabAreas.left.length > 0 ? children : (
-                                                <div className="p-8 text-gray-400 text-center">헤더 메뉴를 클릭하여 탭을 추가하세요</div>
-                                            )}
+                                            {renderAreaContent('left')}
                                         </div>
                                     ) : (
                                         <>
                                             <div className="overflow-auto border-r h-full">
                                                 {/* Left 영역 컨텐츠 */}
-                                                {currentTabAreas.left.length > 0 ? children : (
-                                                    <div className="p-8 text-gray-400 text-center">Left 영역에 탭을 드래그하세요</div>
-                                                )}
+                                                {renderAreaContent('left')}
                                             </div>
                                             {splitMode === 'triple' && (
                                                 <div className="overflow-auto border-r h-full">
                                                     {/* Center 영역 컨텐츠 */}
-                                                    {currentTabAreas.center.length > 0 ? children : (
-                                                        <div className="p-8 text-gray-400 text-center">Center 영역에 탭을 드래그하세요</div>
-                                                    )}
+                                                    {renderAreaContent('center')}
                                                 </div>
                                             )}
                                             <div className="overflow-auto h-full">
                                                 {/* Right 영역 컨텐츠 */}
-                                                {currentTabAreas.right.length > 0 ? children : (
-                                                    <div className="p-8 text-gray-400 text-center">Right 영역에 탭을 드래그하세요</div>
-                                                )}
+                                                {renderAreaContent('right')}
                                             </div>
                                         </>
                                     )}

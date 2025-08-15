@@ -14,6 +14,8 @@
  * };
  * ```
  */
+import type { ComponentType } from 'react';
+
 export interface DynamicTab {
   /** 탭의 고유 식별자 */
   id: string;
@@ -29,6 +31,8 @@ export interface DynamicTab {
   isActive?: boolean;
   /** 탭 정렬 순서 (드래그 앤 드롭용) */
   order: number;
+  /** 스플릿 본문에서 렌더할 뷰 컴포넌트 (클라이언트 전용) */
+  view?: ComponentType;
 }
 
 /**
