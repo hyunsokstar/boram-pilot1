@@ -136,8 +136,8 @@ export default function DashboardHeader() {
                                 key={m.menuNo}
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
                                 className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${isActive
-                                    ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200"
-                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95"
+                                    ? "bg-blue-50 text-blue-700 border-2 border-dashed border-blue-300"
+                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 border-2 border-transparent"
                                     }`}
                                 title={m.label}
                             >
@@ -161,11 +161,6 @@ export default function DashboardHeader() {
 
                                 {/* 텍스트 */}
                                 <span className="font-medium">{m.label}</span>
-
-                                {/* 활성 상태 인디케이터 */}
-                                {isActive && (
-                                    <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-500 rounded-full" />
-                                )}
 
                                 {/* 호버 효과 */}
                                 <div className={`absolute inset-0 rounded-lg transition-opacity ${isActive ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"

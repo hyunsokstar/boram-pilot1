@@ -51,6 +51,9 @@ export function SplitModeSelect({
     const currentOption = splitModeOptions.find(option => option.mode === currentMode);
     const CurrentIcon = currentOption?.icon || Layout;
 
+    // 모든 옵션을 항상 표시 (사용자가 직접 선택할 수 있도록)
+    const availableOptions = splitModeOptions;
+
     // 크기에 따른 스타일 설정
     const getSizeClasses = () => {
         switch (size) {
@@ -90,20 +93,26 @@ export function SplitModeSelect({
             panelClassName={`${panelWidth} p-1`}
         >
             <div className="space-y-1">
-                {splitModeOptions.map((option) => {
+                {availableOptions.map((option) => {
                     const Icon = option.icon;
                     const isActive = option.mode === currentMode;
+                    const isDisabled = false; // 필터링된 옵션들은 모두 선택 가능
 
                     return (
                         <button
                             key={option.mode}
                             onClick={() => onModeChange(option.mode)}
+                            disabled={isDisabled}
                             className={`
                                 w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md
                                 transition-colors duration-150
                                 ${isActive
                                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                     : 'text-gray-700 hover:bg-gray-50'
+                                }
+                                ${isDisabled 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'cursor-pointer'
                                 }
                             `}
                         >

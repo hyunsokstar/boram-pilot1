@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
-import { TabGroup, DropZoneOverlay } from "@/widgets/dashboard-tab-bar";
+import { TabGroup, DropZoneOverlay, DoubleSplitOverlay, TripleSplitOverlay } from "@/widgets/dashboard-tab-bar";
 import type { TabAreas, SplitMode, DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
@@ -188,6 +188,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         });
     }, [activeTabByArea, setStoreActiveTabByArea]);
 
+    // splitMode가 변경될 때 activeTabByArea 초기화
+    useEffect(() => {
+        console.log('splitMode 변경됨:', splitMode);
+        
+        if (splitMode === 'single') {
+            // 1단 모드: center와 right 영역 초기화, left 영역만 유지
+            setActiveTabByArea(prev => ({
+                left: prev.left,
+                center: null,
+                right: null
+            }));
+            
+            // store도 동기화
+            setStoreActiveTabByArea('center', null);
+            setStoreActiveTabByArea('right', null);
+            
+        } else if (splitMode === 'double') {
+            // 2단 모드: right 영역 초기화, left와 center 유지
+            setActiveTabByArea(prev => ({
+                ...prev,
+                right: null
+            }));
+            
+            // store도 동기화
+            setStoreActiveTabByArea('right', null);
+        }
+        // 3단 모드는 모든 영역 유지
+    }, [splitMode, setStoreActiveTabByArea]);
+
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -214,6 +243,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const position = over.data.current.position as DropPosition;
             console.log('드롭존 호버:', position);
             setActiveDropZone(position);
+        } else if (over?.id?.toString().startsWith('double-dropzone-')) {
+            // DoubleSplitOverlay 드롭존
+            const position = over.data?.current?.position;
+            console.log('2단 드롭존 호버:', position);
+            if (position) {
+                setActiveDropZone(position);
+            }
+        } else if (over?.id?.toString().startsWith('triple-dropzone-')) {
+            // TripleSplitOverlay 드롭존
+            const position = over.data?.current?.position;
+            console.log('3단 드롭존 호버:', position);
+            if (position) {
+                setActiveDropZone(position);
+            }
         } else if (over?.data?.current?.type === 'tab-area') {
             const area = over.data.current.area as TabArea;
             console.log('탭바 영역 호버:', area);
@@ -299,6 +342,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const position = over.data.current.position as DropPosition;
             console.log('드롭존에 드롭:', position, '탭:', draggedTabId);
             handleDropZoneDrop(draggedTabId, position);
+            return;
+        } 
+        // DoubleSplitOverlay 드롭존에 드롭된 경우
+        else if (over.id?.toString().startsWith('double-dropzone-')) {
+            const position = over.data?.current?.position;
+            console.log('2단 드롭존에 드롭:', position, '탭:', draggedTabId);
+            if (position) {
+                handleDropZoneDrop(draggedTabId, position);
+            }
+            return;
+        }
+        // TripleSplitOverlay 드롭존에 드롭된 경우
+        else if (over.id?.toString().startsWith('triple-dropzone-')) {
+            const position = over.data?.current?.position;
+            console.log('3단 드롭존에 드롭:', position, '탭:', draggedTabId);
+            if (position) {
+                handleDropZoneDrop(draggedTabId, position);
+            }
             return;
         }
 
@@ -630,9 +691,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
 
-        // 목표 영역에 따라 분할 모드 자동 조정
-        if (targetArea === 'center' && splitMode !== 'triple') {
-            setSplitMode('triple');
+        // 목표 영역에 따라 분할 모드 자동 조정 (단계별 제한)
+        if (targetArea === 'center') {
+            // center 영역은 3단인데, 현재가 single이면 먼저 double로 변경
+            if (splitMode === 'single') {
+                console.log('1단 → 3단 직접 이동 방지, 2단으로 먼저 전환');
+                setSplitMode('double');
+                // center 이동은 취소하고 right로 이동
+                targetArea = 'right';
+            } else if (splitMode === 'double') {
+                setSplitMode('triple');
+            }
         } else if ((targetArea === 'left' || targetArea === 'right') && splitMode === 'single') {
             setSplitMode('double');
         }
@@ -678,22 +747,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         console.log('현재 영역:', currentArea, '목표 위치:', position);
 
-        // 분할 모드 자동 설정
-        let nextSplitMode = splitMode;
-        if (position === 'left' || position === 'right') {
+        // 분할 모드 자동 설정 (단계별 제한)
+        let targetArea: TabArea;
+        if (position === 'center') {
             if (splitMode === 'single') {
-                nextSplitMode = 'double';
+                console.log('1단 → 3단 직접 이동 방지, 2단으로 먼저 전환');
                 setSplitMode('double');
-                console.log('분할 모드 변경: single → double');
+                targetArea = 'right'; // center 대신 right로 이동
+            } else if (splitMode === 'double') {
+                setSplitMode('triple');
+                targetArea = 'center';
+            } else {
+                targetArea = 'center';
             }
-        } else if (position === 'center') {
-            // nextSplitMode = 'triple';
-            setSplitMode('triple');
-            console.log('분할 모드 변경: → triple');
+        } else {
+            targetArea = position as TabArea;
+            if ((position === 'left' || position === 'right') && splitMode === 'single') {
+                setSplitMode('double');
+            }
         }
-
-        // 탭을 해당 영역으로 이동
-        const targetArea: TabArea = position === 'center' ? 'center' : position as TabArea;
 
         console.log('탭 이동:', { from: currentArea, to: targetArea });
 
@@ -861,39 +933,65 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
 
                             {/* 본문 영역 - 분할 모드에 따라 레이아웃 */}
-                            <DropZoneOverlay
-                                isDragActive={isDragActive}
-                                activeDropZone={activeDropZone}
-                                className="flex-1 min-h-0"
-                            >
-                                <div className={`h-full grid gap-1 ${splitMode === 'single' ? 'grid-cols-1' :
-                                    splitMode === 'double' ? 'grid-cols-2' :
-                                        'grid-cols-3'
-                                    }`} style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
-                                    {splitMode === 'single' ? (
+                            {splitMode === 'single' ? (
+                                <DoubleSplitOverlay
+                                    isDragActive={isDragActive}
+                                    activeDropZone={activeDropZone as any}
+                                    onDrop={(position) => {
+                                        const draggedTabId = draggedTab?.id;
+                                        if (draggedTabId) {
+                                            handleDropZoneDrop(draggedTabId, position as any);
+                                        }
+                                    }}
+                                    className="flex-1 min-h-0"
+                                >
+                                    <div className="h-full grid grid-cols-1 gap-1" style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
                                         <div className="overflow-auto h-full">
                                             {renderAreaContent('left')}
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="overflow-auto border-r h-full">
-                                                {/* Left 영역 컨텐츠 */}
-                                                {renderAreaContent('left')}
-                                            </div>
-                                            {splitMode === 'triple' && (
-                                                <div className="overflow-auto border-r h-full">
-                                                    {/* Center 영역 컨텐츠 */}
-                                                    {renderAreaContent('center')}
-                                                </div>
-                                            )}
-                                            <div className="overflow-auto h-full">
-                                                {/* Right 영역 컨텐츠 */}
-                                                {renderAreaContent('right')}
-                                            </div>
-                                        </>
-                                    )}
+                                    </div>
+                                </DoubleSplitOverlay>
+                            ) : splitMode === 'double' ? (
+                                <TripleSplitOverlay
+                                    isDragActive={isDragActive}
+                                    activeDropZone={activeDropZone as any}
+                                    onDrop={(position) => {
+                                        const draggedTabId = draggedTab?.id;
+                                        if (draggedTabId) {
+                                            handleDropZoneDrop(draggedTabId, position as any);
+                                        }
+                                    }}
+                                    className="flex-1 min-h-0"
+                                >
+                                    <div className="h-full grid grid-cols-2 gap-1" style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
+                                        <div className="overflow-auto border-r h-full">
+                                            {/* Left 영역 컨텐츠 */}
+                                            {renderAreaContent('left')}
+                                        </div>
+                                        <div className="overflow-auto h-full">
+                                            {/* Right 영역 컨텐츠 */}
+                                            {renderAreaContent('right')}
+                                        </div>
+                                    </div>
+                                </TripleSplitOverlay>
+                            ) : (
+                                <div className="flex-1 min-h-0">
+                                    <div className="h-full grid grid-cols-3 gap-1" style={{ minHeight: '600px', maxHeight: 'calc(100vh - 200px)' }}>
+                                        <div className="overflow-auto border-r h-full">
+                                            {/* Left 영역 컨텐츠 */}
+                                            {renderAreaContent('left')}
+                                        </div>
+                                        <div className="overflow-auto border-r h-full">
+                                            {/* Center 영역 컨텐츠 */}
+                                            {renderAreaContent('center')}
+                                        </div>
+                                        <div className="overflow-auto h-full">
+                                            {/* Right 영역 컨텐츠 */}
+                                            {renderAreaContent('right')}
+                                        </div>
+                                    </div>
                                 </div>
-                            </DropZoneOverlay>
+                            )}
 
                             {/* 드래그 오버레이 */}
                             <DragOverlay>

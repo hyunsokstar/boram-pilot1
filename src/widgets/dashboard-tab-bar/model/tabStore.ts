@@ -42,7 +42,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
 
     getAllActiveTabIds: () => {
         const { activeTabsByArea } = get();
-        return Object.values(activeTabsByArea);
+        return Object.values(activeTabsByArea).filter(tabId => tabId !== null);
     },
 
     addTab: (newTab) => {

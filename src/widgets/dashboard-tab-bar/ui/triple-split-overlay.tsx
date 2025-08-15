@@ -1,6 +1,6 @@
 /**
- * @fileoverview 드롭존 오버레이 컴포넌트
- * @description 탭을 본문 영역으로 드래그할 때 분할 가이드를 표시
+ * @fileoverview 3단 분할용 드롭존 오버레이 컴포넌트
+ * @description 2단 → 3단 분할을 위한 전용 오버레이
  */
 
 "use client";
@@ -9,30 +9,28 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 
 /**
- * 드롭존 위치 타입
+ * 3단 드롭존 위치 타입
  */
-export type DropPosition = 'left' | 'center' | 'right' | 'full';
+export type TripleSplitPosition = 'left' | 'center' | 'right';
 
 /**
- * 드롭존 컴포넌트의 Props
+ * 3단 드롭존 컴포넌트의 Props
  */
-interface DropZoneProps {
+interface TripleSplitZoneProps {
     /** 드롭존 위치 */
-    position: DropPosition;
+    position: TripleSplitPosition;
     /** 드래그 중인지 여부 */
     isDragActive: boolean;
     /** 드롭존 위에 호버 중인지 여부 */
     isOver?: boolean;
-    /** 드롭 핸들러 */
-    onDrop?: (position: DropPosition) => void;
 }
 
 /**
- * 개별 드롭존 컴포넌트
+ * 3단 개별 드롭존 컴포넌트
  */
-function DropZone({ position, isDragActive, isOver = false }: DropZoneProps) {
+function TripleSplitZone({ position, isDragActive, isOver = false }: TripleSplitZoneProps) {
     const { setNodeRef } = useDroppable({
-        id: `dropzone-${position}`,
+        id: `triple-dropzone-${position}`,
         data: {
             type: 'dropzone',
             position: position,
@@ -49,8 +47,6 @@ function DropZone({ position, isDragActive, isOver = false }: DropZoneProps) {
                 return 'left-1/3 top-0 w-1/3 h-full';
             case 'right':
                 return 'right-0 top-0 w-1/3 h-full';
-            case 'full':
-                return 'inset-0';
             default:
                 return 'inset-0';
         }
@@ -59,13 +55,11 @@ function DropZone({ position, isDragActive, isOver = false }: DropZoneProps) {
     const getLabel = () => {
         switch (position) {
             case 'left':
-                return '왼쪽 분할';
+                return '왼쪽 영역';
             case 'center':
-                return '가운데 분할';
+                return '가운데 영역';
             case 'right':
-                return '오른쪽 분할';
-            case 'full':
-                return '전체 화면';
+                return '오른쪽 영역';
             default:
                 return '';
         }
@@ -85,7 +79,7 @@ function DropZone({ position, isDragActive, isOver = false }: DropZoneProps) {
             `}
         >
             <div className={`
-                px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                px-3 py-1.5 rounded-lg font-medium text-sm transition-all duration-200
                 ${isOver
                     ? 'bg-blue-500 text-white scale-105'
                     : 'bg-white/80 text-gray-700'
@@ -98,55 +92,47 @@ function DropZone({ position, isDragActive, isOver = false }: DropZoneProps) {
 }
 
 /**
- * 드롭존 오버레이 컴포넌트의 Props
+ * 3단 분할 드롭존 오버레이 컴포넌트의 Props
  */
-export interface DropZoneOverlayProps {
+export interface TripleSplitOverlayProps {
     /** 드래그가 활성화되었는지 여부 */
     isDragActive: boolean;
     /** 현재 호버된 드롭존 위치 */
-    activeDropZone?: DropPosition | null;
+    activeDropZone?: TripleSplitPosition | null;
     /** 드롭 핸들러 */
-    onDrop?: (position: DropPosition) => void;
+    onDrop?: (position: TripleSplitPosition) => void;
     /** 오버레이가 적용될 컨테이너 클래스 */
     className?: string;
     /** 자식 컴포넌트 (본문 내용) */
     children: React.ReactNode;
-    /** 현재 분할 모드 */
-    currentSplitMode?: 'single' | 'double' | 'triple';
 }
 
 /**
- * 드롭존 오버레이 컴포넌트
+ * 3단 분할 드롭존 오버레이 컴포넌트
  * 
  * @description
- * - 탭 드래그 중에만 활성화
- * - 피그마 스타일의 분할 가이드 표시
- * - 드롭 위치에 따른 시각적 피드백
- * - 본문 내용 위에 오버레이로 표시
+ * - 2단에서 3단으로 분할할 때 사용
+ * - 좌중우 3분할 가이드라인과 드롭존 제공
+ * - 명확한 3분할 시각적 피드백
  * 
  * @example
  * ```tsx
- * <DropZoneOverlay
+ * <TripleSplitOverlay
  *   isDragActive={isDragging}
  *   activeDropZone={hoveredZone}
  *   onDrop={handleDrop}
  * >
  *   <div>본문 내용</div>
- * </DropZoneOverlay>
+ * </TripleSplitOverlay>
  * ```
  */
-export default function DropZoneOverlay({
+export default function TripleSplitOverlay({
     isDragActive,
     activeDropZone = null,
     onDrop,
     className = "",
-    children,
-    currentSplitMode = 'single'
-}: DropZoneOverlayProps) {
-    // 현재 분할 모드에 따라 표시할 드롭존과 구분선 결정
-    const shouldShowCenterZone = currentSplitMode === 'double';
-    const shouldShowTripleGuides = currentSplitMode === 'double';
-
+    children
+}: TripleSplitOverlayProps) {
     return (
         <div className={`relative ${className}`}>
             {/* 본문 내용 */}
@@ -160,41 +146,30 @@ export default function DropZoneOverlay({
                     {/* 배경 오버레이 */}
                     <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" />
 
-                    {/* 분할 가이드 라인 */}
+                    {/* 3분할 가이드 라인 */}
                     <div className="absolute inset-0">
-                        {/* 세로 구분선들 - 조건부 표시 */}
-                        {currentSplitMode === 'single' && (
-                            <div className="absolute left-1/2 top-0 h-full w-0.5 bg-blue-300/60" />
-                        )}
-                        {shouldShowTripleGuides && (
-                            <>
-                                <div className="absolute left-1/3 top-0 h-full w-0.5 bg-blue-300/60" />
-                                <div className="absolute right-1/3 top-0 h-full w-0.5 bg-blue-300/60" />
-                            </>
-                        )}
+                        {/* 1/3 지점 세로 구분선 */}
+                        <div className="absolute left-1/3 top-0 h-full w-0.5 bg-blue-400/70 shadow-sm" />
+                        {/* 2/3 지점 세로 구분선 */}
+                        <div className="absolute right-1/3 top-0 h-full w-0.5 bg-blue-400/70 shadow-sm" />
                     </div>
 
                     {/* 드롭존들 */}
                     <div className="absolute inset-0 pointer-events-auto">
-                        <DropZone
+                        <TripleSplitZone
                             position="left"
                             isDragActive={isDragActive}
                             isOver={activeDropZone === 'left'}
-                            onDrop={onDrop}
                         />
-                        {shouldShowCenterZone && (
-                            <DropZone
-                                position="center"
-                                isDragActive={isDragActive}
-                                isOver={activeDropZone === 'center'}
-                                onDrop={onDrop}
-                            />
-                        )}
-                        <DropZone
+                        <TripleSplitZone
+                            position="center"
+                            isDragActive={isDragActive}
+                            isOver={activeDropZone === 'center'}
+                        />
+                        <TripleSplitZone
                             position="right"
                             isDragActive={isDragActive}
                             isOver={activeDropZone === 'right'}
-                            onDrop={onDrop}
                         />
                     </div>
                 </div>
