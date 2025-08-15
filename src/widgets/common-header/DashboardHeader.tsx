@@ -28,18 +28,26 @@ export default function DashboardHeader() {
     // 현재 경로 기반 활성 메뉴 - 기본 선택 없음
     const currentActiveMenuNo = null;
 
-    // Zustand에서 직접 활성 탭 ID들을 가져와서 메뉴 번호로 변환
+    // Zustand에서 모든 탭과 활성 탭 정보 가져오기
     const allTabs = getAllTabs();
-    const allActiveTabIds = getAllActiveTabIds().filter(id => id !== null);
-    const allActiveMenuNos = allActiveTabIds
+    const { activeTabsByArea, splitMode: currentSplitMode } = useTabStore();
+
+    // 모든 등록된 탭의 메뉴 번호들
+    const allRegisteredMenuNos = allTabs
+        .filter(tab => tab.menuNo)
+        .map(tab => tab.menuNo);
+
+    // 현재 활성 탭들의 메뉴 번호들 (영역별)
+    const currentActiveMenuNos = Object.values(activeTabsByArea)
+        .filter(tabId => tabId !== null)
         .map(tabId => allTabs.find(tab => tab.id === tabId))
         .filter(tab => tab && tab.menuNo)
         .map(tab => tab!.menuNo);
 
     console.log('Header 활성 탭 계산:', {
-        currentActiveMenuNo,
-        allActiveTabIds,
-        allActiveMenuNos,
+        allRegisteredMenuNos,
+        currentActiveMenuNos,
+        activeTabsByArea,
         tabsCount: allTabs.length,
         allTabs: allTabs.map(t => ({ id: t.id, label: t.label, menuNo: t.menuNo }))
     });
@@ -111,32 +119,32 @@ export default function DashboardHeader() {
                 {/* 메뉴 영역 */}
                 <div className="flex items-center gap-1">
                     {headerMenus.map((m) => {
-                        // 현재 활성 메뉴이거나, 다른 영역에서 활성화된 탭이 있는지 확인
-                        const isCurrentActive = currentActiveMenuNo === m.menuNo;
-                        const hasActiveTabInOtherArea = allActiveMenuNos.includes(m.menuNo);
-                        const isActive = isCurrentActive || hasActiveTabInOtherArea;
+                        // 탭에 등록된 메뉴인지 확인 (모든 영역 포함)
+                        const isRegisteredInTabs = allRegisteredMenuNos.includes(m.menuNo);
+                        // 현재 활성 탭인지 확인 (점 표시용)
+                        const isCurrentActiveTab = currentActiveMenuNos.includes(m.menuNo);
 
                         // 디버깅용 로그
-                        if (isActive) {
-                            console.log(`Menu ${m.menuNo} is active:`, {
-                                isCurrentActive,
-                                hasActiveTabInOtherArea,
-                                currentActiveMenuNo,
-                                allActiveMenuNos
+                        if (isRegisteredInTabs || isCurrentActiveTab) {
+                            console.log(`Menu ${m.menuNo} status:`, {
+                                isRegisteredInTabs,
+                                isCurrentActiveTab,
+                                allRegisteredMenuNos,
+                                currentActiveMenuNos
                             });
                         }
                         return (
                             <button
                                 key={m.menuNo}
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
-                                className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${isActive
+                                className={`group relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-medium transition-all duration-200 min-w-[80px] ${isRegisteredInTabs
                                     ? "bg-blue-50 text-blue-700 border-2 border-dashed border-blue-300"
                                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 border-2 border-transparent"
                                     }`}
                                 title={m.label}
                             >
                                 {/* 아이콘 컨테이너 */}
-                                <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${isActive
+                                <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${isRegisteredInTabs
                                     ? "bg-blue-100"
                                     : "bg-gray-100 group-hover:bg-gray-200"
                                     }`}>
@@ -144,20 +152,25 @@ export default function DashboardHeader() {
                                         <Image
                                             src={m.iconUrl}
                                             alt={`${m.label} 아이콘`}
-                                            width={18}
-                                            height={18}
-                                            className={`transition-opacity ${isActive ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
+                                            width={20}
+                                            height={20}
+                                            className={`transition-opacity ${isRegisteredInTabs ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
                                         />
                                     ) : (
-                                        <div className={`w-4 h-4 rounded-sm ${isActive ? "bg-blue-400" : "bg-gray-400"}`} />
+                                        <div className={`w-5 h-5 rounded-sm ${isRegisteredInTabs ? "bg-blue-400" : "bg-gray-400"}`} />
+                                    )}
+
+                                    {/* 활성 탭 표시 점 */}
+                                    {isCurrentActiveTab && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
                                     )}
                                 </div>
 
                                 {/* 텍스트 */}
-                                <span className="font-medium">{m.label}</span>
+                                <span className="font-medium text-center leading-tight">{m.label}</span>
 
                                 {/* 호버 효과 */}
-                                <div className={`absolute inset-0 rounded-lg transition-opacity ${isActive ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
+                                <div className={`absolute inset-0 rounded-xl transition-opacity ${isRegisteredInTabs ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
                                     }`} />
                             </button>
                         );

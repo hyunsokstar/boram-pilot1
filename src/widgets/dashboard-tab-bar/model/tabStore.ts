@@ -320,7 +320,11 @@ export const useTabStore = create<TabStore>((set, get) => {
                         ...state.tabAreas,
                         [targetArea]: [...state.tabAreas[targetArea], tab]
                     },
-                    activeTabId: tab.id
+                    activeTabId: tab.id,
+                    activeTabsByArea: {
+                        ...state.activeTabsByArea,
+                        [targetArea]: tab.id // 새 탭을 해당 영역의 활성 탭으로 설정
+                    }
                 };
                 console.log('상태 업데이트 후:', newState.tabAreas);
 
@@ -349,8 +353,8 @@ export const useTabStore = create<TabStore>((set, get) => {
 
                 const newActiveTabsByArea = { ...state.activeTabsByArea };
                 if (newActiveTabsByArea[area] === tabId) {
-                    // 같은 영역의 첫 번째 탭으로 변경
-                    newActiveTabsByArea[area] = newTabAreas[area].length > 0 ? newTabAreas[area][0].id : null;
+                    // 같은 영역의 마지막 탭으로 변경 (없으면 null)
+                    newActiveTabsByArea[area] = newTabAreas[area].length > 0 ? newTabAreas[area][newTabAreas[area].length - 1].id : null;
                 }
 
                 const newState = {
@@ -381,9 +385,18 @@ export const useTabStore = create<TabStore>((set, get) => {
 
             set(state => {
                 const newTabAreas = { ...state.tabAreas };
+                const newActiveTabsByArea = { ...state.activeTabsByArea };
 
                 // 원본 영역에서 제거
                 newTabAreas[fromArea] = newTabAreas[fromArea].filter(t => t.id !== tabId);
+
+                // 원본 영역의 활성 탭이 이동된 탭이었다면 새로운 활성 탭 설정
+                if (newActiveTabsByArea[fromArea] === tabId) {
+                    // 원본 영역에 남은 탭 중 마지막 탭을 활성화 (없으면 null)
+                    newActiveTabsByArea[fromArea] = newTabAreas[fromArea].length > 0
+                        ? newTabAreas[fromArea][newTabAreas[fromArea].length - 1].id
+                        : null;
+                }
 
                 // 목표 영역에 추가
                 if (targetIndex !== undefined) {
@@ -394,11 +407,20 @@ export const useTabStore = create<TabStore>((set, get) => {
                     newTabAreas[toArea].push(tab);
                 }
 
-                return { tabAreas: newTabAreas };
-            });
+                // 이동된 탭을 목표 영역의 활성 탭으로 설정
+                newActiveTabsByArea[toArea] = tabId;
 
-            // 이동된 탭을 해당 영역의 활성 탭으로 설정
-            get().setActiveTabByArea(toArea, tabId);
+                const newState = {
+                    ...state,
+                    tabAreas: newTabAreas,
+                    activeTabsByArea: newActiveTabsByArea
+                };
+
+                // localStorage에 저장
+                saveToLocalStorage(newState);
+
+                return newState;
+            });
 
             console.log(`탭 이동: ${tab.label} ${fromArea} → ${toArea}`);
         },
@@ -558,13 +580,32 @@ export const restoreFromLocalStorage = () => {
         const store = useTabStore.getState();
 
         // 저장된 상태로 복원
-        useTabStore.setState({
+        const restoredState = {
             tabAreas: savedState.tabAreas || store.tabAreas,
             activeTabId: savedState.activeTabId || store.activeTabId,
             activeTabsByArea: savedState.activeTabsByArea || store.activeTabsByArea,
             splitMode: savedState.splitMode || store.splitMode
+        };
+
+        // 각 영역에서 활성 탭이 없으면 마지막 탭을 활성화
+        const newActiveTabsByArea = { ...restoredState.activeTabsByArea };
+        let hasChanges = false;
+
+        (['left', 'center', 'right'] as const).forEach(area => {
+            const areaTabs = restoredState.tabAreas[area] || [];
+            if (areaTabs.length > 0 && !newActiveTabsByArea[area]) {
+                // 마지막 탭을 활성화
+                newActiveTabsByArea[area] = areaTabs[areaTabs.length - 1].id;
+                hasChanges = true;
+            }
         });
 
-        console.log('localStorage에서 상태 복원됨:', savedState);
+        if (hasChanges) {
+            restoredState.activeTabsByArea = newActiveTabsByArea;
+        }
+
+        useTabStore.setState(restoredState);
+
+        console.log('localStorage에서 상태 복원됨:', restoredState);
     }
 };
