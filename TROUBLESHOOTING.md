@@ -2,7 +2,24 @@
 
 다른 환경에서 TypeScript 오류가 발생할 때 시도해볼 해결 방법들:
 
-## 1. 패키지 재설치
+## 1. next-env.d.ts 파일 확인/복구
+```typescript
+// next-env.d.ts 파일이 프로젝트 루트에 있어야 함
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+```
+
+파일이 없다면 위 내용으로 생성하거나, Next.js가 자동 생성하도록:
+```bash
+npm run dev
+# 또는
+npx next dev
+```
+
+## 2. 패키지 재설치
 ```bash
 # node_modules와 package-lock.json 삭제
 rm -rf node_modules package-lock.json
@@ -14,7 +31,7 @@ del package-lock.json
 npm install
 ```
 
-## 2. Next.js 캐시 클리어
+## 3. Next.js 캐시 클리어
 ```bash
 rm -rf .next
 # 또는 Windows에서
@@ -23,7 +40,7 @@ rmdir /s .next
 npm run dev
 ```
 
-## 3. TypeScript 서버 재시작 (VS Code)
+## 4. TypeScript 서버 재시작 (VS Code)
 - `Ctrl+Shift+P` → "TypeScript: Restart TS Server"
 
 ## 4. Node.js 버전 확인
