@@ -3,6 +3,8 @@
 다른 환경에서 TypeScript 오류가 발생할 때 시도해볼 해결 방법들:
 
 ## 1. next-env.d.ts 파일 확인/복구
+**중요**: 이 파일은 `.gitignore`에 포함되어 있어 Git에서 관리되지 않습니다.
+
 ```typescript
 // next-env.d.ts 파일이 프로젝트 루트에 있어야 함
 /// <reference types="next" />
@@ -12,12 +14,13 @@
 // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 ```
 
-파일이 없다면 위 내용으로 생성하거나, Next.js가 자동 생성하도록:
+**해결 방법**:
 ```bash
+# Next.js 개발 서버 실행하면 자동으로 생성됨
 npm run dev
-# 또는
-npx next dev
 ```
+
+파일이 생성되지 않으면 수동으로 위 내용을 `next-env.d.ts`에 저장하세요.
 
 ## 2. 패키지 재설치
 ```bash
