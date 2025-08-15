@@ -130,6 +130,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         });
     }, [currentTabAreas, activeTabByArea]);
 
+    // 헤더 클릭 등으로 전역 activeTabId가 바뀌면 해당 탭이 속한 영역의 활성 탭도 동기화
+    useEffect(() => {
+        if (!activeTabId) return;
+        const inLeft = (currentTabAreas.left || []).some(t => t && t.id === activeTabId);
+        const inCenter = (currentTabAreas.center || []).some(t => t && t.id === activeTabId);
+        const inRight = (currentTabAreas.right || []).some(t => t && t.id === activeTabId);
+
+        const area: TabArea | null = inLeft ? 'left' : inCenter ? 'center' : inRight ? 'right' : null;
+        if (area) {
+            setActiveTabByArea(prev => ({
+                ...prev,
+                [area]: activeTabId
+            }));
+        }
+    }, [activeTabId, currentTabAreas]);
+
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -353,9 +369,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return children;
         }
 
-    // 분할 모드에서는 탭에 포함된 view 우선 렌더링, 없으면 href 기반 레지스트리 조회
-    const Comp = activeTab.view || resolveViewByHref(activeTab.href);
-    if (Comp) return <Comp />;
+        // 분할 모드에서는 탭에 포함된 view 우선 렌더링, 없으면 href 기반 레지스트리 조회
+        const Comp = activeTab.view || resolveViewByHref(activeTab.href);
+        if (Comp) return <Comp />;
 
         // href가 없으면 기본 메시지 표시
         return (
