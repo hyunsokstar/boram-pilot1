@@ -23,12 +23,32 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const addTab = useTabStore((s) => s.addTab);
+    const { addTab, tabs, getAllActiveTabIds } = useTabStore();
 
-    const activeTopNo = useMemo(
-        () => (pathname ? findTopByPath(pathname)?.menuNo ?? null : null),
-        [pathname]
-    );
+    // 현재 경로의 활성 메뉴와 모든 영역의 활성 탭 정보
+    const { currentActiveMenuNo, allActiveMenuNos } = useMemo(() => {
+        // 현재 경로 기반 활성 메뉴
+        const currentMenuNo = pathname ? findTopByPath(pathname)?.menuNo ?? null : null;
+
+        // 모든 영역의 활성 탭들에서 메뉴 목록 추출
+        const allActiveTabIds = getAllActiveTabIds().filter(id => id !== null);
+        const activeMenuNos = allActiveTabIds
+            .map(tabId => tabs.find(tab => tab.id === tabId))
+            .filter(tab => tab && tab.menuNo)
+            .map(tab => tab!.menuNo);
+
+        console.log('Header 활성 탭 계산:', {
+            currentMenuNo,
+            allActiveTabIds,
+            activeMenuNos,
+            tabsCount: tabs.length
+        });
+
+        return {
+            currentActiveMenuNo: currentMenuNo,
+            allActiveMenuNos: activeMenuNos
+        };
+    }, [pathname, tabs, getAllActiveTabIds]);
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정
@@ -97,21 +117,34 @@ export default function DashboardHeader() {
                 {/* 메뉴 영역 */}
                 <div className="flex items-center gap-1">
                     {headerMenus.map((m) => {
-                        const isActive = activeTopNo === m.menuNo;
+                        // 현재 활성 메뉴이거나, 다른 영역에서 활성화된 탭이 있는지 확인
+                        const isCurrentActive = currentActiveMenuNo === m.menuNo;
+                        const hasActiveTabInOtherArea = allActiveMenuNos.includes(m.menuNo);
+                        const isActive = isCurrentActive || hasActiveTabInOtherArea;
+
+                        // 디버깅용 로그
+                        if (isActive) {
+                            console.log(`Menu ${m.menuNo} is active:`, {
+                                isCurrentActive,
+                                hasActiveTabInOtherArea,
+                                currentActiveMenuNo,
+                                allActiveMenuNos
+                            });
+                        }
                         return (
                             <button
                                 key={m.menuNo}
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
                                 className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-[120px] ${isActive
-                                        ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95"
+                                    ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200"
+                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95"
                                     }`}
                                 title={m.label}
                             >
                                 {/* 아이콘 컨테이너 */}
                                 <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${isActive
-                                        ? "bg-blue-100"
-                                        : "bg-gray-100 group-hover:bg-gray-200"
+                                    ? "bg-blue-100"
+                                    : "bg-gray-100 group-hover:bg-gray-200"
                                     }`}>
                                     {m.iconUrl ? (
                                         <Image

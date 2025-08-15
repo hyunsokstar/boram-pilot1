@@ -70,7 +70,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         removeTab,
         setActiveTab,
         getSortedTabs,
-        reorderTabs
+        reorderTabs,
+        setActiveTabByArea: setStoreActiveTabByArea
     } = useTabStore();
 
     // 정렬된 탭 배열 가져오기
@@ -122,10 +123,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             // 해당 영역에 탭이 있지만 활성 탭이 없거나, 활성 탭이 더 이상 해당 영역에 없는 경우
             if (areaTabs.length > 0 && (!currentActiveTab || !areaTabs.find(tab => tab.id === currentActiveTab))) {
+                const newActiveTab = areaTabs[0].id;
                 setActiveTabByArea(prev => ({
                     ...prev,
-                    [area]: areaTabs[0].id
+                    [area]: newActiveTab
                 }));
+                // store 동기화는 useEffect에서 자동으로 처리됨
             }
         });
     }, [currentTabAreas, activeTabByArea]);
@@ -145,6 +148,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             }));
         }
     }, [activeTabId, currentTabAreas]);
+
+    // activeTabByArea 상태가 변경되면 store에도 자동 동기화
+    useEffect(() => {
+        console.log('activeTabByArea 변경됨, store 동기화:', activeTabByArea);
+        Object.entries(activeTabByArea).forEach(([area, tabId]) => {
+            setStoreActiveTabByArea(area, tabId);
+        });
+    }, [activeTabByArea, setStoreActiveTabByArea]);
 
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
@@ -327,6 +338,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             ...prev,
             [area]: tabId
         }));
+        // store 동기화는 useEffect에서 자동으로 처리됨
 
         // 전역 활성 탭도 설정 (기존 로직 유지)
         setActiveTab(tabId);
@@ -422,6 +434,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const handleTabMove = (tabId: string, fromArea: TabArea, toArea: TabArea, targetIndex?: number) => {
         console.log('handleTabMove 호출:', { tabId, fromArea, toArea, targetIndex });
 
+        // 현재 activeTabByArea 상태 확인
+        const wasActiveInFromArea = activeTabByArea[fromArea] === tabId;
+
         setTabAreas(prev => {
             const newAreas = { ...prev };
 
@@ -449,6 +464,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             return newAreas;
         });
+
+        // activeTabByArea 업데이트
+        setActiveTabByArea(prev => {
+            const newActiveTabByArea = { ...prev };
+
+            // 목표 영역의 활성 탭으로 설정
+            newActiveTabByArea[toArea] = tabId;
+
+            // 원래 영역에서 활성 탭이 이동된 경우 다른 탭으로 교체
+            if (wasActiveInFromArea) {
+                const remainingFromAreaTabs = (currentTabAreas[fromArea] || []).filter(tab => tab && tab.id !== tabId);
+                newActiveTabByArea[fromArea] = remainingFromAreaTabs.length > 0 ? remainingFromAreaTabs[0].id : null;
+
+                console.log('원래 영역 활성 탭 교체:', { fromArea, newActiveTab: newActiveTabByArea[fromArea] });
+            }
+
+            return newActiveTabByArea;
+        });
+        // store 동기화는 useEffect에서 자동으로 처리됨
+
+        // 전역 활성 탭도 설정
+        setActiveTab(tabId);
+
+        console.log('handleTabMove 완료: store 동기화됨', { toArea, tabId, wasActiveInFromArea });
     };
 
     // 탭바 영역에 탭 드롭 핸들러 (빈 영역에 드롭할 때)
@@ -498,6 +537,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             ...prev,
             [targetArea]: tabId
         }));
+        // store 동기화는 useEffect에서 자동으로 처리됨
 
         // 전역 활성 탭도 설정
         setActiveTab(tabId);
@@ -556,6 +596,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             ...prev,
             [targetArea]: tabId
         }));
+        // store 동기화는 useEffect에서 자동으로 처리됨
 
         // 전역 활성 탭도 설정
         setActiveTab(tabId);

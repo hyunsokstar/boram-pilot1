@@ -4,6 +4,8 @@ import { DynamicTab } from './types';
 interface TabStore {
     tabs: DynamicTab[];
     activeTabId: string | null;
+    // 각 영역별 활성 탭 추적을 위한 상태
+    activeTabsByArea: Record<string, string | null>;
 
     // Actions
     addTab: (tab: Omit<DynamicTab, 'order'>) => void;
@@ -12,6 +14,9 @@ interface TabStore {
     reorderTabs: (sourceIndex: number, destinationIndex: number) => void;
     updateTab: (tabId: string, updates: Partial<DynamicTab>) => void;
     clearAllTabs: () => void;
+    // 영역별 활성 탭 관리
+    setActiveTabByArea: (area: string, tabId: string | null) => void;
+    getAllActiveTabIds: () => (string | null)[];
     // Getter
     getSortedTabs: () => DynamicTab[];
 }
@@ -19,10 +24,25 @@ interface TabStore {
 export const useTabStore = create<TabStore>((set, get) => ({
     tabs: [],
     activeTabId: null,
+    activeTabsByArea: {},
 
     getSortedTabs: () => {
         const { tabs } = get();
         return tabs.sort((a, b) => a.order - b.order);
+    },
+
+    setActiveTabByArea: (area, tabId) => {
+        set(state => ({
+            activeTabsByArea: {
+                ...state.activeTabsByArea,
+                [area]: tabId
+            }
+        }));
+    },
+
+    getAllActiveTabIds: () => {
+        const { activeTabsByArea } = get();
+        return Object.values(activeTabsByArea);
     },
 
     addTab: (newTab) => {
