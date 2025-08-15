@@ -7,7 +7,6 @@
 
 import React from 'react';
 import TabBar from './tab-bar';
-import { Layout, Columns2, Columns3 } from 'lucide-react';
 import type { TabAreas, TabArea, SplitMode } from '../model/types';
 import { SplitModeSelect } from './split-mode-select';
 export type { DropPosition } from './drop-zone-overlay';

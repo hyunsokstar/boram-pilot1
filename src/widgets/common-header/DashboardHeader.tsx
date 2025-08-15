@@ -1,5 +1,4 @@
 "use client";
-import { useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";

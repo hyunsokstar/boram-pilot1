@@ -129,7 +129,7 @@ export interface TripleSplitOverlayProps {
 export default function TripleSplitOverlay({
     isDragActive,
     activeDropZone = null,
-    onDrop,
+    onDrop, // eslint-disable-line @typescript-eslint/no-unused-vars
     className = "",
     children
 }: TripleSplitOverlayProps) {

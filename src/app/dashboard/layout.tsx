@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
 import {
@@ -22,12 +22,11 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
-import { TabGroup, DropZoneOverlay, DoubleSplitOverlay, TripleSplitOverlay } from "@/widgets/dashboard-tab-bar";
+import { TabGroup, DoubleSplitOverlay, TripleSplitOverlay } from "@/widgets/dashboard-tab-bar";
 import type { TabAreas, SplitMode, DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
 import { NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
-import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 
 // 확장된 드롭존 컴포넌트
@@ -60,7 +59,6 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-    const pathname = usePathname();
     const router = useRouter();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
 
@@ -95,7 +93,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         getSortedTabs,
         reorderTabs,
         setActiveTabByArea: setStoreActiveTabByArea,
-        getAllActiveTabIds,
         ensureActiveTabsForAreas,
         activeTabsByArea
     } = useTabStore();
@@ -144,7 +141,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     // 탭 영역이 변경될 때마다 Zustand에서 자동으로 활성 탭 설정
     useEffect(() => {
         console.log('탭 영역 변경됨, Zustand로 자동 활성 탭 설정');
-        ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, any[]>);
+        ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, { id: string;[key: string]: unknown }[]>);
     }, [currentTabAreas, ensureActiveTabsForAreas]);
 
     // 전역 activeTabId가 변경되면 해당 탭이 속한 영역에서도 활성화
@@ -177,7 +174,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         // splitMode 변경 후 영역별 자동 활성 탭 설정
         setTimeout(() => {
-            ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, any[]>);
+            ensureActiveTabsForAreas(currentTabAreas as unknown as Record<string, { id: string;[key: string]: unknown }[]>);
         }, 50);
     }, [splitMode, setStoreActiveTabByArea, currentTabAreas, ensureActiveTabsForAreas]);    // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
@@ -892,11 +889,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             {splitMode === 'single' ? (
                                 <DoubleSplitOverlay
                                     isDragActive={isDragActive}
-                                    activeDropZone={activeDropZone as any}
+                                    activeDropZone={activeDropZone as 'left' | 'right' | null}
                                     onDrop={(position) => {
                                         const draggedTabId = draggedTab?.id;
                                         if (draggedTabId) {
-                                            handleDropZoneDrop(draggedTabId, position as any);
+                                            handleDropZoneDrop(draggedTabId, position as DropPosition);
                                         }
                                     }}
                                     className="flex-1 min-h-0"
@@ -910,11 +907,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             ) : splitMode === 'double' ? (
                                 <TripleSplitOverlay
                                     isDragActive={isDragActive}
-                                    activeDropZone={activeDropZone as any}
+                                    activeDropZone={activeDropZone as 'left' | 'center' | 'right' | null}
                                     onDrop={(position) => {
                                         const draggedTabId = draggedTab?.id;
                                         if (draggedTabId) {
-                                            handleDropZoneDrop(draggedTabId, position as any);
+                                            handleDropZoneDrop(draggedTabId, position as DropPosition);
                                         }
                                     }}
                                     className="flex-1 min-h-0"

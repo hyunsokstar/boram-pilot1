@@ -125,7 +125,7 @@ export interface DoubleSplitOverlayProps {
 export default function DoubleSplitOverlay({
     isDragActive,
     activeDropZone = null,
-    onDrop,
+    onDrop, // eslint-disable-line @typescript-eslint/no-unused-vars
     className = "",
     children
 }: DoubleSplitOverlayProps) {

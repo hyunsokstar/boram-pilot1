@@ -18,7 +18,7 @@ interface TabStore {
     setActiveTabByArea: (area: string, tabId: string | null) => void;
     getAllActiveTabIds: () => (string | null)[];
     // 영역별 자동 활성 탭 설정
-    ensureActiveTabsForAreas: (tabAreas: Record<string, any[]>) => void;
+    ensureActiveTabsForAreas: (tabAreas: Record<string, { id: string; [key: string]: unknown }[]>) => void;
     // Getter
     getSortedTabs: () => DynamicTab[];
 }

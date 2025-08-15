@@ -78,7 +78,7 @@ export default function TabGroup({
     className = ""
 }: TabGroupProps) {
     const [activeTab, setActiveTab] = React.useState<DynamicTab | null>(null);
-    const [isDragActive, setIsDragActive] = React.useState(false);
+    // const [isDragActive, setIsDragActive] = React.useState(false); // 현재 사용되지 않음
 
     // 드래그 센서 설정
     const sensors = useSensors(
@@ -110,7 +110,7 @@ export default function TabGroup({
         const tabId = String(active.id);
 
         // 드래그 상태 활성화
-        setIsDragActive(true);
+        // setIsDragActive(true); // 현재 사용되지 않음
         onDragStateChange?.(true, null);
 
         // 드래그 중인 탭 찾기
@@ -129,7 +129,7 @@ export default function TabGroup({
 
         // 드래그 상태 초기화
         setActiveTab(null);
-        setIsDragActive(false);
+        // setIsDragActive(false); // 현재 사용되지 않음
         onDragStateChange?.(false, null);
 
         if (!over || active.id === over.id) return;
