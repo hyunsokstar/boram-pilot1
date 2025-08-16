@@ -57,20 +57,34 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
                 : 'bg-transparent'
                 }`}
             style={{
-                // 더 큰 감지 영역을 위한 확장된 padding
-                padding: '8px',
-                margin: '-8px',
+                // 상단 여백을 두어 탭바와 분리, 좌우하단은 확장
+                paddingTop: '32px', // 상단 32px 여백으로 탭바와 분리
+                paddingLeft: '8px',
+                paddingRight: '8px',
+                paddingBottom: '8px',
+                marginTop: '0px', // 상단은 마진 없음
+                marginLeft: '-8px',
+                marginRight: '-8px',
+                marginBottom: '-8px',
                 minHeight: '200px', // 최소 높이 보장
             }}
         >
-            {/* 드롭 가능 영역 시각적 힌트 */}
+            {/* 드롭 가능 영역 시각적 힌트 - 상단 여백 반영 */}
             {isDropZoneEnabled && (
-                <div className="absolute inset-2 border-2 border-dashed border-gray-300 rounded-lg opacity-30 pointer-events-none transition-opacity duration-200 hover:opacity-60" />
+                <div
+                    className="absolute border-2 border-dashed border-gray-300 rounded-lg opacity-30 pointer-events-none transition-opacity duration-200 hover:opacity-60"
+                    style={{
+                        top: '32px', // 상단 여백만큼 아래에서 시작
+                        left: '8px',
+                        right: '8px',
+                        bottom: '8px'
+                    }}
+                />
             )}
 
             {/* 드롭 활성화 시 강조 표시 */}
             {isOver && isDropZoneEnabled && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingTop: '32px' }}>
                     <div className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg font-medium">
                         📁 탭을 여기에 드롭하세요
                     </div>
@@ -156,16 +170,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 const rect = container.rect.current;
                 if (!rect) continue;
 
-                // 감지 영역을 20px씩 확장
+                // 상단 탭바 영역 제외하고 감지 영역 설정
                 const expandedRect = {
                     ...rect,
-                    top: rect.top - 20,
+                    top: rect.top + 32, // 상단 32px는 제외 (탭바 영역)
                     bottom: rect.bottom + 20,
                     left: rect.left - 20,
                     right: rect.right + 20,
                 };
 
-                // 포인터가 확장된 영역 안에 있는지 확인
+                // 포인터가 확장된 영역 안에 있는지 확인 (상단 제외)
                 const isInExpandedArea =
                     pointerCoordinates.x >= expandedRect.left &&
                     pointerCoordinates.x <= expandedRect.right &&
