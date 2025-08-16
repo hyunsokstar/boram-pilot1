@@ -3,7 +3,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
-import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
+import { resolveViewByHref } from "@/widgets/dashboard-views";
 import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { useAuthStore } from "@/shared/store/authStore";
@@ -23,7 +23,7 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const { splitMode, setSplitMode, activeHeaderCategories } = useTabStore();
+    const { splitMode, setSplitMode, activeHeaderCategories, addTab } = useTabStore();
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정
@@ -34,7 +34,22 @@ export default function DashboardHeader() {
             window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo } }));
         }
 
-        // 헤더는 필터링만 담당, 탭 등록은 사이드바에서 처리
+        // href가 있으면 (직접 페이지인 경우) 탭 등록 후 페이지 이동
+        if (href && href.trim() !== "") {
+            const headerMenu = headerMenus.find(menu => menu.menuNo === menuNo);
+            if (headerMenu) {
+                const View = resolveViewByHref(headerMenu.href || undefined) || undefined;
+                addTab({
+                    id: headerMenu.menuNo,
+                    label: headerMenu.label,
+                    href: headerMenu.href,
+                    menuNo: headerMenu.menuNo,
+                    isClosable: true,
+                    view: View
+                });
+            }
+            router.push(href);
+        }
     };
 
     const handleLogout = async () => {
