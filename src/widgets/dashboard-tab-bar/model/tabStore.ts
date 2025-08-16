@@ -176,7 +176,7 @@
 //     },
 
 //     // 특정 영역의 탭들 반환
-//     getTabsForArea: (area) => {
+//     getTabsForArea: (area: TabArea) => {
 //         return get().tabAreas[area];
 //     },
 
@@ -339,8 +339,10 @@ export const useTabStore = create<TabStore>((set, get) => {
                 return newState;
             });
 
-            // 해당 영역의 활성 탭으로 설정 및 헤더 카테고리 업데이트
+            // 해당 영역의 활성 탭으로 설정
             get().setActiveTabByArea(targetArea, tab.id);
+
+            // 탭 추가 후 헤더 카테고리 동기화
             get().updateHeaderCategories();
 
             console.log(`새 탭 추가: ${tab.label} → ${targetArea} 영역`);
