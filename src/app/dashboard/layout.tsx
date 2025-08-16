@@ -51,12 +51,30 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
     return (
         <div
             ref={isDropZoneEnabled ? setNodeRef : undefined}
-            className={`h-full transition-all duration-200 rounded-lg ${isOver && isDropZoneEnabled
+            className={`h-full w-full transition-all duration-200 rounded-lg relative ${isOver && isDropZoneEnabled
                 ? 'bg-blue-100/50 border-2 border-dashed border-blue-400 scale-[0.98]'
                 : 'bg-transparent'
                 }`}
+            style={{
+                // 더 큰 감지 영역을 위한 확장된 padding
+                padding: '8px',
+                margin: '-8px',
+                minHeight: '200px', // 최소 높이 보장
+            }}
         >
-            {/* 드롭 라벨 완전히 제거 */}
+            {/* 드롭 가능 영역 시각적 힌트 */}
+            {isDropZoneEnabled && (
+                <div className="absolute inset-2 border-2 border-dashed border-gray-300 rounded-lg opacity-30 pointer-events-none transition-opacity duration-200 hover:opacity-60" />
+            )}
+            
+            {/* 드롭 활성화 시 강조 표시 */}
+            {isOver && isDropZoneEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg font-medium">
+                        📁 탭을 여기에 드롭하세요
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -90,11 +108,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         restoreFromLocalStorage();
     }, []);
 
-    // 드래그 센서 설정
+    // 드래그 센서 설정 - 더 민감한 반응을 위해 거리 줄임
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 3, // 8에서 3으로 줄여서 더 빠른 반응
             },
         }),
         useSensor(KeyboardSensor, {
@@ -102,11 +120,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         })
     );
 
-    // 커스텀 collision detection - main-content-split을 우선시
+    // 커스텀 collision detection - 더 민감한 감지 및 main-content-split 우선시
     const customCollisionDetection: CollisionDetection = (args) => {
-        const { droppableContainers } = args;
+        const { droppableContainers, active, pointerCoordinates } = args;
 
-        // main-content-split drop zone 확인
+        // main-content-split drop zone 확인 (single 모드에서만)
         const mainContentSplitZone = droppableContainers.find(
             container => container.id === 'main-content-split'
         );
@@ -124,7 +142,49 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             }
         }
 
-        // main-content-split과 충돌하지 않으면 기본 collision detection 사용
+        // 2영역 이상일 때 더 민감한 감지를 위한 확장된 collision detection
+        const expandedDropZones = droppableContainers.filter(
+            container => String(container.id).includes('expanded-tab-area-')
+        );
+
+        if (expandedDropZones.length > 0 && pointerCoordinates) {
+            // 각 드롭존에 대해 확장된 감지 영역 적용
+            const expandedIntersections = expandedDropZones.map(container => {
+                const rect = container.rect.current;
+                if (!rect) return null;
+
+                // 감지 영역을 20px씩 확장
+                const expandedRect = {
+                    ...rect,
+                    top: rect.top - 20,
+                    bottom: rect.bottom + 20,
+                    left: rect.left - 20,
+                    right: rect.right + 20,
+                };
+
+                // 포인터가 확장된 영역 안에 있는지 확인
+                const isInExpandedArea = 
+                    pointerCoordinates.x >= expandedRect.left &&
+                    pointerCoordinates.x <= expandedRect.right &&
+                    pointerCoordinates.y >= expandedRect.top &&
+                    pointerCoordinates.y <= expandedRect.bottom;
+
+                if (isInExpandedArea) {
+                    return {
+                        id: container.id,
+                        data: container.data
+                    };
+                }
+                return null;
+            }).filter((item): item is { id: any; data: any } => item !== null);
+
+            if (expandedIntersections.length > 0) {
+                console.log('Expanded drop zone detected:', expandedIntersections);
+                return expandedIntersections;
+            }
+        }
+
+        // 기본 collision detection 사용
         return closestCenter(args);
     };
 

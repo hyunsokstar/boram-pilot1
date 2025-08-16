@@ -203,15 +203,20 @@ function IntegratedPanel({
                 )}
             </div>
 
-            {/* 콘텐츠 영역 - 전체 높이 확보 */}
-            <div className="flex-1 min-h-0 h-full">
+            {/* 콘텐츠 영역 - 전체 높이 확보 및 드롭존 최적화 */}
+            <div className="flex-1 min-h-0 h-full relative">
                 <MainContentSplitZone>
                     {/* 1영역 모드에서는 ExpandedDropZone 사용하지 않음 (MainContentSplitZone과 충돌 방지) */}
                     {isDragActive && splitMode !== 'single' ? (
-                        <ExpandedDropZone area={area} />
-                    ) : (
-                        renderAreaContent(area)
-                    )}
+                        <div className="absolute inset-0 z-10">
+                            <ExpandedDropZone area={area} />
+                        </div>
+                    ) : null}
+
+                    {/* 실제 콘텐츠는 항상 렌더링 */}
+                    <div className={`h-full ${isDragActive && splitMode !== 'single' ? 'relative z-0' : ''}`}>
+                        {renderAreaContent(area)}
+                    </div>
                 </MainContentSplitZone>
             </div>
         </div>
