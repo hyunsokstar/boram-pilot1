@@ -9,6 +9,7 @@ import {
 } from 'react-resizable-panels';
 import TabBar from './tab-bar';
 import type { SplitMode, TabArea, TabAreas } from '../model/types';
+import { Minus } from 'lucide-react';
 
 interface ResizablePanelGroupProps {
     splitMode: SplitMode;
@@ -25,7 +26,7 @@ interface ResizablePanelGroupProps {
 }
 
 // 빈 헤더 드롭존 컴포넌트
-function EmptyHeaderDropZone({ area }: { area: TabArea }) {
+function EmptyHeaderDropZone({ area, onAreaClose }: { area: TabArea; onAreaClose?: (area: TabArea) => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: `header-dropzone-${area}`,
         data: {
@@ -34,10 +35,17 @@ function EmptyHeaderDropZone({ area }: { area: TabArea }) {
         },
     });
 
+    // 영역 닫기 핸들러
+    const handleAreaClose = () => {
+        if (onAreaClose) {
+            onAreaClose(area);
+        }
+    };
+
     return (
         <div
             ref={setNodeRef}
-            className={`h-12 w-full flex items-center px-3 text-sm transition-all duration-200 relative ${isOver
+            className={`h-12 w-full flex items-center justify-between px-3 text-sm transition-all duration-200 relative ${isOver
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
@@ -47,6 +55,7 @@ function EmptyHeaderDropZone({ area }: { area: TabArea }) {
                 <div className="absolute inset-0 border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-sm animate-pulse" />
             )}
 
+            {/* 왼쪽: 영역 정보 */}
             <div className="flex items-center gap-2 relative z-10">
                 {isOver && (
                     <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
@@ -56,6 +65,19 @@ function EmptyHeaderDropZone({ area }: { area: TabArea }) {
                     {isOver && ' - 탭을 드롭하세요'}
                 </span>
             </div>
+
+            {/* 오른쪽: 닫기 버튼 */}
+            {onAreaClose && (
+                <div className="flex-shrink-0 relative z-10">
+                    <button
+                        onClick={handleAreaClose}
+                        className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-red-50 hover:border-red-200 border border-gray-200 transition-all duration-200"
+                        title="영역 닫기"
+                    >
+                        <Minus className="w-3.5 h-3.5 text-gray-600 hover:text-red-600 transition-colors duration-200" />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
@@ -100,7 +122,7 @@ function IntegratedPanel({
                     />
                 ) : (
                     /* 빈 헤더 드롭존 */
-                    <EmptyHeaderDropZone area={area} />
+                    <EmptyHeaderDropZone area={area} onAreaClose={onAreaClose} />
                 )}
             </div>
 
