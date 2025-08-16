@@ -18,6 +18,7 @@ import {
     useDroppable,
     CollisionDetection,
     rectIntersection,
+    type Collision,
 } from '@dnd-kit/core';
 import {
     sortableKeyboardCoordinates,
@@ -66,7 +67,7 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
             {isDropZoneEnabled && (
                 <div className="absolute inset-2 border-2 border-dashed border-gray-300 rounded-lg opacity-30 pointer-events-none transition-opacity duration-200 hover:opacity-60" />
             )}
-            
+
             {/* 드롭 활성화 시 강조 표시 */}
             {isOver && isDropZoneEnabled && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -122,7 +123,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // 커스텀 collision detection - 더 민감한 감지 및 main-content-split 우선시
     const customCollisionDetection: CollisionDetection = (args) => {
-        const { droppableContainers, active, pointerCoordinates } = args;
+        const { droppableContainers, pointerCoordinates } = args;
 
         // main-content-split drop zone 확인 (single 모드에서만)
         const mainContentSplitZone = droppableContainers.find(
@@ -149,9 +150,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         if (expandedDropZones.length > 0 && pointerCoordinates) {
             // 각 드롭존에 대해 확장된 감지 영역 적용
-            const expandedIntersections = expandedDropZones.map(container => {
+            const expandedIntersections: Collision[] = [];
+
+            for (const container of expandedDropZones) {
                 const rect = container.rect.current;
-                if (!rect) return null;
+                if (!rect) continue;
 
                 // 감지 영역을 20px씩 확장
                 const expandedRect = {
@@ -163,20 +166,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 };
 
                 // 포인터가 확장된 영역 안에 있는지 확인
-                const isInExpandedArea = 
+                const isInExpandedArea =
                     pointerCoordinates.x >= expandedRect.left &&
                     pointerCoordinates.x <= expandedRect.right &&
                     pointerCoordinates.y >= expandedRect.top &&
                     pointerCoordinates.y <= expandedRect.bottom;
 
                 if (isInExpandedArea) {
-                    return {
+                    expandedIntersections.push({
                         id: container.id,
                         data: container.data
-                    };
+                    });
                 }
-                return null;
-            }).filter((item): item is { id: any; data: any } => item !== null);
+            }
 
             if (expandedIntersections.length > 0) {
                 console.log('Expanded drop zone detected:', expandedIntersections);

@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
