@@ -22,8 +22,9 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardHeader from "@/widgets/common-header";
 import DashboardSidebar from "@/widgets/common-sidebar";
-import { DoubleSplitOverlay, TripleSplitOverlay, ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
-import type { DropPosition, TabArea } from "@/widgets/dashboard-tab-bar";
+import { ResizablePanelGroup } from "@/widgets/dashboard-tab-bar";
+import DropZoneOverlay, { DropPosition } from "@/widgets/dashboard-tab-bar/ui/drop-zone-overlay";
+import type { TabArea } from "@/widgets/dashboard-tab-bar";
 import { useTabStore, restoreFromLocalStorage } from "@/widgets/dashboard-tab-bar/model/tabStore";
 import { ProtectedRoute } from "@/shared/ui";
 import { NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
@@ -47,13 +48,7 @@ function ExpandedDropZone({ area }: { area: TabArea }) {
                 : 'bg-transparent'
                 }`}
         >
-            {isOver && (
-                <div className="h-full flex items-center justify-center">
-                    <div className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
-                        {area === 'left' ? '왼쪽' : area === 'center' ? '가운데' : '오른쪽'} 영역에 드롭
-                    </div>
-                </div>
-            )}
+            {/* 드롭 라벨 완전히 제거 */}
         </div>
     );
 }
@@ -267,11 +262,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 moveTabToArea(tabId, tabInfo.area, 'right');
                 break;
             case 'center':
-                // triple 모드에서만 center 영역 사용
                 if (splitMode === 'double') {
                     setSplitMode('triple');
-                    moveTabToArea(tabId, tabInfo.area, 'center');
                 }
+                moveTabToArea(tabId, tabInfo.area, 'center');
                 break;
         }
     };
@@ -357,38 +351,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex flex-1 overflow-hidden">
                         <DashboardSidebar />
                         <div className="flex-1 relative">
-                            {/* 드래그 시 오버레이 (배경 그리드) */}
+                            {/* 탭 추가 시 전체 오버레이 효과 */}
                             {isDragActive && (
-                                <>
-                                    {splitMode === 'single' && (
-                                        <DoubleSplitOverlay
-                                            isDragActive={isDragActive}
-                                            activeDropZone={activeDropZone as 'left' | 'right' | null}
-                                            onDrop={(position) => {
-                                                const draggedTabId = draggedTab?.id;
-                                                if (draggedTabId) {
-                                                    handleDropZoneDrop(draggedTabId, position);
-                                                }
-                                            }}
-                                        >
-                                            <div className="h-full" />
-                                        </DoubleSplitOverlay>
-                                    )}
-                                    {splitMode === 'double' && (
-                                        <TripleSplitOverlay
-                                            isDragActive={isDragActive}
-                                            activeDropZone={activeDropZone as 'left' | 'center' | 'right' | null}
-                                            onDrop={(position) => {
-                                                const draggedTabId = draggedTab?.id;
-                                                if (draggedTabId) {
-                                                    handleDropZoneDrop(draggedTabId, position);
-                                                }
-                                            }}
-                                        >
-                                            <div className="h-full" />
-                                        </TripleSplitOverlay>
-                                    )}
-                                </>
+                                <DropZoneOverlay
+                                    isDragActive={isDragActive}
+                                    activeDropZone={activeDropZone}
+                                    currentSplitMode={splitMode}
+                                    onDrop={(position: DropPosition) => {
+                                        const draggedTabId = draggedTab?.id;
+                                        if (draggedTabId) {
+                                            handleDropZoneDrop(draggedTabId, position);
+                                        }
+                                    }}
+                                >
+                                    <div className="h-full" />
+                                </DropZoneOverlay>
                             )}
 
                             {/* 통합된 탭바 + 콘텐츠 리사이즈 패널 */}
