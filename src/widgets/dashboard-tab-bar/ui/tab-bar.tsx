@@ -10,7 +10,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import DraggableTab from './draggable-tab';
 import type { TabArea } from '../model/types';
-import { ChevronLeft, ChevronRight, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, SplitSquareHorizontal } from 'lucide-react';
+import { useTabStore } from '../model/tabStore';
 
 // 탭 리스트 끝에 위치하는 드롭존 컴포넌트
 function EndDropZone({ area }: { area?: TabArea }) {
@@ -72,6 +73,8 @@ export interface TabBarProps {
     area?: TabArea;
     /** 영역 닫기 핸들러 */
     onAreaClose?: (area: TabArea) => void;
+    /** 2단 분할 핸들러 */
+    onSplit?: () => void;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -104,8 +107,10 @@ export default function TabBar({
     // onTabReorder, // 현재 사용되지 않음
     area,
     onAreaClose,
+    onSplit,
     className = ""
 }: TabBarProps) {
+    const splitMode = useTabStore((state) => state.splitMode);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -313,6 +318,17 @@ export default function TabBar({
                             title="오른쪽으로 스크롤"
                         >
                             <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
+                        </button>
+                    )}
+
+                    {/* 2단 분할 버튼 - 단일 모드일 때만 표시 */}
+                    {splitMode === 'single' && onSplit && (
+                        <button
+                            onClick={onSplit}
+                            className="w-7 h-7 flex items-center justify-center bg-white shadow-md rounded-full hover:bg-blue-50 hover:border-blue-200 border border-gray-200 transition-all duration-200"
+                            title="2단 분할"
+                        >
+                            <SplitSquareHorizontal className="w-3.5 h-3.5 text-gray-600 hover:text-blue-600 transition-colors duration-200" />
                         </button>
                     )}
 

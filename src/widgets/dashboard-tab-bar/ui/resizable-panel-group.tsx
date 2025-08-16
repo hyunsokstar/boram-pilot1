@@ -93,6 +93,7 @@ function IntegratedPanel({
     renderAreaContent,
     ExpandedDropZone,
     onAreaClose,
+    onSplit,
 }: {
     area: TabArea;
     isDragActive: boolean;
@@ -103,6 +104,7 @@ function IntegratedPanel({
     renderAreaContent: (area: TabArea) => React.ReactNode;
     ExpandedDropZone: React.ComponentType<{ area: TabArea }>;
     onAreaClose?: (area: TabArea) => void;
+    onSplit?: () => void;
 }) {
     const areaTabs = tabAreas[area] || [];
     const activeTab = activeTabsByArea[area];
@@ -119,6 +121,7 @@ function IntegratedPanel({
                         onTabClose={onTabClose}
                         area={area}
                         onAreaClose={onAreaClose}
+                        onSplit={onSplit}
                     />
                 ) : (
                     /* 빈 헤더 드롭존 */
@@ -176,6 +179,13 @@ export default function ResizablePanelGroup({
         }
     };
 
+    // 2단 분할 함수
+    const handleSplit = () => {
+        if (onSplitModeChange && splitMode === 'single') {
+            onSplitModeChange('double');
+        }
+    };
+
     // 렌더링 시작
 
     // 분할 모드 선택 컴포넌트
@@ -206,6 +216,7 @@ export default function ResizablePanelGroup({
                     onTabClose={onTabClose}
                     renderAreaContent={renderAreaContent}
                     ExpandedDropZone={ExpandedDropZone}
+                    onSplit={handleSplit}
                 />
             </div>
         );
