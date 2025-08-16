@@ -28,10 +28,7 @@ export default function DashboardHeader() {
 
     // 실시간으로 헤더 카테고리 상태를 감지하기 위한 구독
     React.useEffect(() => {
-        // 컴포넌트 마운트 시 헤더 카테고리 업데이트
-        updateHeaderCategories();
-
-        // 스토어 상태 변화 감지를 위한 구독
+        // 스토어 상태 변화 감지를 위한 구독만 설정 (updateHeaderCategories 직접 호출 제거)
         const unsubscribe = useTabStore.subscribe(() => {
             // 상태 변화가 있을 때마다 헤더 카테고리 업데이트
             console.log('탭 상태 변화 감지, 헤더 카테고리 업데이트');
@@ -39,7 +36,7 @@ export default function DashboardHeader() {
         });
 
         return unsubscribe;
-    }, [updateHeaderCategories]);
+    }, []); // 의존성 배열 비움으로써 무한 루프 방지
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정

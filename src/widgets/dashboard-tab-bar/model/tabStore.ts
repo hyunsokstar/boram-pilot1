@@ -641,7 +641,7 @@ export const useTabStore = create<TabStore>((set, get) => {
 
         // 헤더 카테고리 상태 업데이트
         updateHeaderCategories: () => {
-            const { activeTabsByArea } = get();
+            const { activeTabsByArea, activeHeaderCategories } = get();
             const activeCategories = new Set<string>();
 
             // 각 영역의 활성 탭만 기준으로 최상위 카테고리 찾기
@@ -656,6 +656,15 @@ export const useTabStore = create<TabStore>((set, get) => {
                     }
                 }
             });
+
+            // 기존 카테고리와 새 카테고리가 동일하면 상태 업데이트 스킵 (무한 루프 방지)
+            const currentCategories = Array.from(activeHeaderCategories).sort();
+            const newCategories = Array.from(activeCategories).sort();
+
+            if (JSON.stringify(currentCategories) === JSON.stringify(newCategories)) {
+                console.log('헤더 카테고리 변경 없음, 업데이트 스킵');
+                return;
+            }
 
             set(state => ({
                 ...state,
