@@ -9,32 +9,41 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import DraggableTab from './draggable-tab';
-import type { TabArea } from '../model/types';
+import type { SplitMode, TabArea } from '../model/types';
 import { ChevronLeft, ChevronRight, Minus, SplitSquareHorizontal } from 'lucide-react';
 import { useTabStore } from '../model/tabStore';
 
 // 탭 리스트 끝에 위치하는 드롭존 컴포넌트
 function EndDropZone({ area }: { area?: TabArea }) {
+    const splitMode = useTabStore((state) => state.splitMode);
+    const isEndDropEnabled = splitMode !== 'single';
+
     const { setNodeRef, isOver } = useDroppable({
         id: `tab-end-${area}`,
         data: {
             type: 'tab-end',
             area: area,
         },
+        disabled: !isEndDropEnabled,
     });
+
+    // 디버깅용 로그
+    if (isOver && isEndDropEnabled) {
+        console.log('🟡 EndDropZone 활성화됨 (splitMode:', splitMode, ')');
+    }
 
     return (
         <div
-            ref={setNodeRef}
+            ref={isEndDropEnabled ? setNodeRef : undefined}
             className={`
                 flex-shrink-0 w-12 h-8 mx-2 transition-all duration-200 rounded
-                ${isOver
+                ${isOver && isEndDropEnabled
                     ? 'bg-blue-100 border-2 border-dashed border-blue-400'
                     : 'bg-transparent border-2 border-dashed border-transparent hover:border-gray-300'
                 }
             `}
         >
-            {isOver && (
+            {isOver && isEndDropEnabled && (
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="w-1 h-4 bg-blue-500 rounded"></div>
                 </div>
@@ -77,6 +86,10 @@ export interface TabBarProps {
     onSplit?: () => void;
     /** 추가 CSS 클래스 */
     className?: string;
+    /** 드래그 활성화 상태 */
+    isDragActive?: boolean;
+    /** 분할 모드 */
+    splitMode?: SplitMode;
 }
 
 /**
@@ -108,21 +121,31 @@ export default function TabBar({
     area,
     onAreaClose,
     onSplit,
-    className = ""
+    className = "",
+    isDragActive,
+    splitMode: propSplitMode
 }: TabBarProps) {
-    const splitMode = useTabStore((state) => state.splitMode);
+    const splitModeFromStore = useTabStore((state) => state.splitMode);
+    const splitMode = propSplitMode || splitModeFromStore;
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
-    // 탭바 영역을 드롭존으로 설정
+    // 탭바 영역을 드롭존으로 설정 (1영역일 때는 비활성화)
+    const isTabBarDropEnabled = splitMode !== 'single';
     const { setNodeRef: setDropRef, isOver } = useDroppable({
         id: `tab-area-${area}`,
         data: {
             type: 'tab-area',
             area: area,
         },
+        disabled: !isTabBarDropEnabled,
     });
+
+    // 디버깅용 로그
+    if (isOver && isTabBarDropEnabled) {
+        console.log('🔵 TabBar 드롭존 활성화됨 (splitMode:', splitMode, ')');
+    }
 
     // 스크롤 상태 업데이트
     const updateScrollButtons = () => {
@@ -164,7 +187,7 @@ export default function TabBar({
         }
     };
 
-    console.log('TabBar 렌더링:', { area, droppableId: `tab-area-${area}`, tabs: tabs.length, isOver });
+    console.log('TabBar 렌더링:', { area, droppableId: `tab-area-${area}`, tabs: tabs.length });
 
     /**
      * 탭 클릭 핸들러
@@ -240,12 +263,18 @@ export default function TabBar({
 
     return (
         <div
-            ref={setDropRef}
+            ref={isTabBarDropEnabled ? setDropRef : undefined}
             className={`bg-gray-50 border-b border-gray-200 relative transition-all duration-200 ${className}`}
-            style={{ overflow: 'visible', position: 'relative', height: '48px' }}
+            style={{
+                overflow: 'visible',
+                position: 'relative',
+                height: '48px',
+                // 드래그 중이고 single 모드일 때 pointer-events 비활성화
+                pointerEvents: (isDragActive && splitMode === 'single') ? 'none' : 'auto'
+            }}
         >
-            {/* 미니멀한 드롭 인디케이터 - 점선 테두리만 */}
-            {isOver && (
+            {/* 미니멀한 드롭 인디케이터 - 1영역일 때는 표시하지 않음 */}
+            {isOver && isTabBarDropEnabled && (
                 <div className="absolute inset-0 z-30 pointer-events-none">
                     {/* 점선 테두리만 표시 */}
                     <div className="absolute inset-0 border-2 border-dashed border-blue-400 rounded-lg animate-pulse" style={{
@@ -300,6 +329,8 @@ export default function TabBar({
                                     onTabClick={handleTabClick}
                                     onTabClose={handleCloseTab}
                                     area={area}
+                                    isDragActive={isDragActive}
+                                    splitMode={splitMode}
                                 />
                             ))}
 

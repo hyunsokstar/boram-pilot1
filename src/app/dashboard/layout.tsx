@@ -15,7 +15,9 @@ import {
     DragStartEvent,
     DragEndEvent,
     DragOverEvent,
-    useDroppable
+    useDroppable,
+    CollisionDetection,
+    rectIntersection,
 } from '@dnd-kit/core';
 import {
     sortableKeyboardCoordinates,
@@ -32,18 +34,24 @@ import { useNavStore } from "@/shared/store/navStore";
 
 // 확장된 드롭존 컴포넌트
 function ExpandedDropZone({ area }: { area: TabArea }) {
+    const splitMode = useTabStore((state) => state.splitMode);
+
+    // 1영역일 때는 드롭존 비활성화
+    const isDropZoneEnabled = splitMode !== 'single';
+
     const { setNodeRef, isOver } = useDroppable({
         id: `expanded-tab-area-${area}`,
         data: {
             type: 'tab-area',
             area: area,
         },
+        disabled: !isDropZoneEnabled,
     });
 
     return (
         <div
-            ref={setNodeRef}
-            className={`h-full transition-all duration-200 rounded-lg ${isOver
+            ref={isDropZoneEnabled ? setNodeRef : undefined}
+            className={`h-full transition-all duration-200 rounded-lg ${isOver && isDropZoneEnabled
                 ? 'bg-blue-100/50 border-2 border-dashed border-blue-400 scale-[0.98]'
                 : 'bg-transparent'
                 }`}
@@ -94,6 +102,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         })
     );
 
+    // 커스텀 collision detection - main-content-split을 우선시
+    const customCollisionDetection: CollisionDetection = (args) => {
+        const { droppableContainers } = args;
+
+        // main-content-split drop zone 확인
+        const mainContentSplitZone = droppableContainers.find(
+            container => container.id === 'main-content-split'
+        );
+
+        if (mainContentSplitZone) {
+            // rectIntersection으로 main-content-split과의 충돌 확인
+            const intersections = rectIntersection({
+                ...args,
+                droppableContainers: [mainContentSplitZone]
+            });
+
+            if (intersections.length > 0) {
+                console.log('Main content split zone detected - prioritizing over tab reordering');
+                return intersections;
+            }
+        }
+
+        // main-content-split과 충돌하지 않으면 기본 collision detection 사용
+        return closestCenter(args);
+    };
+
     // 드래그 시작 핸들러
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -110,13 +144,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             id: tabId,
             label: activeData.label || tabId
         });
+
+        console.log('드래그 시작:', { tabId, splitMode });
     };
 
     // 드래그 오버 핸들러 (드롭존 호버 감지)
     const handleDragOver = (event: DragOverEvent) => {
         const { over } = event;
 
-        if (over?.data?.current?.type === 'dropzone') {
+        if (over) {
+            console.log('드래그 오버:', {
+                overId: over.id,
+                overType: over.data?.current?.type,
+                splitMode
+            });
+        }
+
+        // 메인 콘텐츠 분할 드롭존 처리 (1영역에서 2영역 분할)
+        if (over?.id === 'main-content-split' && splitMode === 'single') {
+            console.log('🟢 메인 콘텐츠 분할 드롭존 호버');
+            setActiveDropZone(null); // 다른 드롭존 비활성화
+        } else if (over?.data?.current?.type === 'dropzone') {
             const position = over.data.current.position as DropPosition;
             console.log('드롭존 호버:', position);
             setActiveDropZone(position);
@@ -149,6 +197,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
 
+    // 간단한 드롭존 처리 함수
+    const handleDropZoneDrop = (tabId: string, position: DropPosition) => {
+        console.log('드롭존 처리:', { tabId, position });
+
+        const tabInfo = findTabById(tabId);
+        if (!tabInfo) return;
+
+        // position에 따라 splitMode 설정 및 탭 이동
+        switch (position) {
+            case 'left':
+                if (splitMode === 'single') {
+                    setSplitMode('double');
+                }
+                moveTabToArea(tabId, tabInfo.area, 'left');
+                break;
+            case 'right':
+                if (splitMode === 'single') {
+                    setSplitMode('double');
+                } else if (splitMode === 'double') {
+                    setSplitMode('triple');
+                }
+                moveTabToArea(tabId, tabInfo.area, 'right');
+                break;
+            case 'center':
+                if (splitMode === 'double') {
+                    setSplitMode('triple');
+                }
+                moveTabToArea(tabId, tabInfo.area, 'center');
+                break;
+        }
+    };
+
     // 드래그 종료 핸들러
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -167,6 +247,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         if (activeData.type !== 'tab') return;
 
         console.log('handleDragEnd:', { draggedTabId, overType: over.data?.current?.type, overId: over.id });
+
+        // 메인 콘텐츠 분할 드롭 우선 처리 (1영역에서 2영역으로 분할)
+        if (over.id === 'main-content-split' && splitMode === 'single') {
+            console.log('메인 콘텐츠 분할 드롭:', { draggedTabId });
+
+            const tabInfo = findTabById(draggedTabId);
+            if (tabInfo) {
+                // 2영역으로 분할
+                setSplitMode('double');
+                // 드래그한 탭을 right 영역으로 이동
+                moveTabToArea(draggedTabId, tabInfo.area, 'right');
+            }
+            return;
+        }
 
         // SortableContext 내부의 순서 변경인지 확인
         // (같은 영역 내에서 탭끼리 드래그한 경우)
@@ -238,38 +332,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
 
-    // 간단한 드롭존 처리 함수
-    const handleDropZoneDrop = (tabId: string, position: DropPosition) => {
-        console.log('드롭존 처리:', { tabId, position });
-
-        const tabInfo = findTabById(tabId);
-        if (!tabInfo) return;
-
-        // position에 따라 splitMode 설정 및 탭 이동
-        switch (position) {
-            case 'left':
-                if (splitMode === 'single') {
-                    setSplitMode('double');
-                }
-                moveTabToArea(tabId, tabInfo.area, 'left');
-                break;
-            case 'right':
-                if (splitMode === 'single') {
-                    setSplitMode('double');
-                } else if (splitMode === 'double') {
-                    setSplitMode('triple');
-                }
-                moveTabToArea(tabId, tabInfo.area, 'right');
-                break;
-            case 'center':
-                if (splitMode === 'double') {
-                    setSplitMode('triple');
-                }
-                moveTabToArea(tabId, tabInfo.area, 'center');
-                break;
-        }
-    };
-
     // 탭 클릭 핸들러
     const handleTabChange = (tabId: string, area: TabArea) => {
         console.log('handleTabChange 호출:', { tabId, area, splitMode });
@@ -338,7 +400,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <ProtectedRoute>
             <DndContext
                 sensors={sensors}
-                collisionDetection={closestCenter}
+                collisionDetection={customCollisionDetection}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
@@ -351,8 +413,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex flex-1 overflow-hidden">
                         <DashboardSidebar />
                         <div className="flex-1 relative">
-                            {/* 탭 추가 시 전체 오버레이 효과 */}
-                            {isDragActive && (
+                            {/* 탭 추가 시 전체 오버레이 효과 - 임시 비활성화 */}
+                            {false && isDragActive && (
                                 <DropZoneOverlay
                                     isDragActive={isDragActive}
                                     activeDropZone={activeDropZone}

@@ -5,7 +5,6 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { resolveViewByHref } from "@/widgets/dashboard-views";
-import { findTopByPath } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
 import { useAuthStore } from "@/shared/store/authStore";
 import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
@@ -21,7 +20,6 @@ import {
 
 export default function DashboardHeader() {
     const router = useRouter();
-    const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
     const { splitMode, setSplitMode, activeHeaderCategories, addTab, updateHeaderCategories } = useTabStore();
@@ -36,7 +34,7 @@ export default function DashboardHeader() {
         });
 
         return unsubscribe;
-    }, []); // 의존성 배열 비움으로써 무한 루프 방지
+    }, [updateHeaderCategories]); // updateHeaderCategories를 의존성에 추가
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정

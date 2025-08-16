@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useTabStore } from "../model/tabStore";
-import { SplitMode } from "../model/types";
 
 interface EmptyAreaOverlayProps {
     area: 'left' | 'center' | 'right';

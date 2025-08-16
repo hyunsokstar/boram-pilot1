@@ -9,7 +9,8 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { TabArea } from '../model/types';
+import type { TabArea, SplitMode } from '../model/types';
+import { useTabStore } from '../model/tabStore';
 
 /**
  * 드래그 가능한 탭 컴포넌트의 Props
@@ -29,6 +30,10 @@ interface DraggableTabProps {
     onTabClose?: (tabId: string) => void;
     /** 탭이 속한 영역 (TabGroup에서 사용) */
     area?: TabArea;
+    /** 드래그 활성화 상태 */
+    isDragActive?: boolean;
+    /** 분할 모드 */
+    splitMode?: SplitMode;
 }
 
 /**
@@ -57,8 +62,13 @@ export default function DraggableTab({
     isClosable = true,
     onTabClick,
     onTabClose,
-    area
+    area,
+    isDragActive,
+    splitMode: propSplitMode
 }: DraggableTabProps) {
+    // 분할 모드 가져오기 (props로 받은 것 우선 사용)
+    const splitModeFromStore = useTabStore((state) => state.splitMode);
+    const splitMode = propSplitMode || splitModeFromStore;
     // dnd-kit의 sortable 훅 사용 (순서 변경과 영역 간 이동 모두 지원)
     const {
         attributes,
@@ -76,19 +86,34 @@ export default function DraggableTab({
         }
     });
 
-    // 드롭존 기능 추가 (다른 탭이 이 탭 위에 드롭될 수 있도록)
+    // 드래그 상태 디버깅
+    if (isDragging) {
+        console.log('🟡 탭 드래그 중:', id, label);
+    }
+
+    // 드롭존 기능 추가 (다른 탭이 이 탭 위에 드롭될 수 있도록) - 1영역일 때는 비활성화
+    const isTabDropEnabled = splitMode !== 'single';
+
     const { setNodeRef: setDropRef, isOver } = useDroppable({
         id: `tab-drop-${id}`,
         data: {
             type: 'tab-area',
             area: area,
         },
+        disabled: !isTabDropEnabled,
     });
+
+    // 디버깅용 로그
+    if (isOver && isTabDropEnabled) {
+        console.log('🔴 DraggableTab 드롭존 활성화됨 (탭:', id, ', splitMode:', splitMode, ')');
+    }
 
     // 두 ref를 결합하는 함수
     const setRefs = (node: HTMLElement | null) => {
         setNodeRef(node);
-        setDropRef(node);
+        if (isTabDropEnabled) {
+            setDropRef(node);
+        }
     };
 
     // 드래그 중 스타일 적용 - 더 부드러운 애니메이션
@@ -124,7 +149,11 @@ export default function DraggableTab({
     return (
         <div
             ref={setRefs}
-            style={style}
+            style={{
+                ...style,
+                // 드래그 중이고 single 모드일 때 pointer-events 비활성화 (메인 드롭존 우선)
+                pointerEvents: (isDragActive && splitMode === 'single') ? 'none' : 'auto'
+            }}
             className={`
                 group relative flex items-center px-3 py-1.5 border-2 font-medium text-sm transition-all duration-200 cursor-pointer
                 ${isActive
@@ -132,7 +161,7 @@ export default function DraggableTab({
                     : 'border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-white bg-white'
                 }
                 ${isDragging ? 'shadow-lg border-blue-400 bg-blue-100' : ''}
-                ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50' : ''}
+                ${isOver && isTabDropEnabled ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50' : ''}
                 min-w-0 flex-shrink-0 h-8
             `}
             onClick={handleClick}

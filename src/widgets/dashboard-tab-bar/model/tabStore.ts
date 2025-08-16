@@ -543,7 +543,7 @@ export const useTabStore = create<TabStore>((set, get) => {
 
         // 분할 모드 변경 시 탭 자동 이동 처리
         handleSplitModeChange: (fromMode: SplitMode, toMode: SplitMode) => {
-            const { tabAreas, activeTabsByArea } = get();
+            const { tabAreas } = get();
 
             // single → double: left 영역의 탭 일부를 right로 이동
             if (fromMode === 'single' && toMode === 'double') {

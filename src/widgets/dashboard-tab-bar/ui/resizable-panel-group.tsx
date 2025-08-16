@@ -9,7 +9,74 @@ import {
 } from 'react-resizable-panels';
 import TabBar from './tab-bar';
 import type { SplitMode, TabArea, TabAreas } from '../model/types';
+import { useTabStore } from '../model/tabStore';
 import { Minus } from 'lucide-react';
+
+// 메인 콘텐츠 분할 드롭존 (1영역일 때만 사용)
+function MainContentSplitZone({ children }: { children: React.ReactNode }) {
+    const splitMode = useTabStore((state) => state.splitMode);
+
+    const { setNodeRef, isOver } = useDroppable({
+        id: 'main-content-split',
+        data: {
+            type: 'main-content-split',
+        },
+    });
+
+    // 디버깅용 로그
+    if (isOver) {
+        console.log('🟢 MainContentSplitZone 활성화됨');
+    }
+
+    // 1영역일 때만 드롭존 활성화
+    if (splitMode !== 'single') {
+        return <>{children}</>;
+    }
+
+    return (
+        <div className="h-full relative">
+            {/* 전체 영역을 덮는 드롭존 */}
+            <div
+                ref={setNodeRef}
+                className="absolute inset-0 w-full h-full z-[9999]"
+                style={{
+                    minHeight: '100%',
+                    minWidth: '100%',
+                    pointerEvents: 'auto'
+                }}
+                onMouseEnter={() => console.log('🎯 MainContentSplitZone 마우스 진입')}
+                onMouseLeave={() => console.log('🎯 MainContentSplitZone 마우스 나감')}
+            />
+
+            {/* 실제 콘텐츠 */}
+            <div className="relative z-0" style={{ pointerEvents: 'none' }}>
+                {children}
+            </div>            {/* 드롭 오버레이 - pointer-events-none으로 설정하여 드래그 방해 방지 */}
+            {isOver && (
+                <div className="absolute inset-0 z-50 pointer-events-none">
+                    <div
+                        className="absolute inset-0 bg-green-100/90 border-4 border-dashed border-green-500 rounded-lg"
+                        style={{
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.25)',
+                            animation: 'pulse 1.5s ease-in-out infinite',
+                        }}
+                    />
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="bg-green-500 text-white px-8 py-4 rounded-xl shadow-2xl animate-bounce">
+                            <div className="flex items-center gap-4">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                <span className="font-bold text-lg">2영역으로 분할</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 interface ResizablePanelGroupProps {
     splitMode: SplitMode;
@@ -27,12 +94,18 @@ interface ResizablePanelGroupProps {
 
 // 빈 헤더 드롭존 컴포넌트
 function EmptyHeaderDropZone({ area, onAreaClose }: { area: TabArea; onAreaClose?: (area: TabArea) => void }) {
+    const splitMode = useTabStore((state) => state.splitMode);
+
+    // 1영역일 때는 드롭존 비활성화
+    const isDropZoneEnabled = splitMode !== 'single';
+
     const { setNodeRef, isOver } = useDroppable({
         id: `header-dropzone-${area}`,
         data: {
             type: 'tab-area',
             area: area,
         },
+        disabled: !isDropZoneEnabled,
     });
 
     // 영역 닫기 핸들러
@@ -44,14 +117,14 @@ function EmptyHeaderDropZone({ area, onAreaClose }: { area: TabArea; onAreaClose
 
     return (
         <div
-            ref={setNodeRef}
-            className={`h-12 w-full flex items-center justify-between px-3 text-sm transition-all duration-200 relative ${isOver
+            ref={isDropZoneEnabled ? setNodeRef : undefined}
+            className={`h-12 w-full flex items-center justify-between px-3 text-sm transition-all duration-200 relative ${isOver && isDropZoneEnabled
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
         >
             {/* 드롭 상태일 때 전체 영역 강조 */}
-            {isOver && (
+            {isOver && isDropZoneEnabled && (
                 <div className="absolute inset-0 border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-sm animate-pulse" />
             )}
 
@@ -106,6 +179,7 @@ function IntegratedPanel({
     onAreaClose?: (area: TabArea) => void;
     onSplit?: () => void;
 }) {
+    const splitMode = useTabStore((state) => state.splitMode);
     const areaTabs = tabAreas[area] || [];
     const activeTab = activeTabsByArea[area];
 
@@ -129,13 +203,16 @@ function IntegratedPanel({
                 )}
             </div>
 
-            {/* 콘텐츠 영역 */}
-            <div className="flex-1 min-h-0">
-                {isDragActive ? (
-                    <ExpandedDropZone area={area} />
-                ) : (
-                    renderAreaContent(area)
-                )}
+            {/* 콘텐츠 영역 - 전체 높이 확보 */}
+            <div className="flex-1 min-h-0 h-full">
+                <MainContentSplitZone>
+                    {/* 1영역 모드에서는 ExpandedDropZone 사용하지 않음 (MainContentSplitZone과 충돌 방지) */}
+                    {isDragActive && splitMode !== 'single' ? (
+                        <ExpandedDropZone area={area} />
+                    ) : (
+                        renderAreaContent(area)
+                    )}
+                </MainContentSplitZone>
             </div>
         </div>
     );
