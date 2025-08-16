@@ -264,6 +264,7 @@ interface TabStore {
     clearAllTabs: () => void;
     setSplitMode: (mode: SplitMode) => void;
     updateHeaderCategories: () => void; // 헤더 카테고리 상태 업데이트
+    handleSplitModeChange: (fromMode: SplitMode, toMode: SplitMode) => void; // 분할 모드 변경 시 탭 자동 이동
 
     // 헬퍼 함수들
     getTabsForArea: (area: TabArea) => DynamicTab[];
@@ -430,6 +431,9 @@ export const useTabStore = create<TabStore>((set, get) => {
                 return newState;
             });
 
+            // 헤더 카테고리 업데이트
+            get().updateHeaderCategories();
+
             console.log(`탭 이동: ${tab.label} ${fromArea} → ${toArea}`);
         },
 
@@ -482,6 +486,9 @@ export const useTabStore = create<TabStore>((set, get) => {
 
                 return newState;
             });
+
+            // 헤더 카테고리 업데이트
+            get().updateHeaderCategories();
         },
 
         // 모든 탭 제거
@@ -499,10 +506,16 @@ export const useTabStore = create<TabStore>((set, get) => {
 
                 return newState;
             });
+
+            // 헤더 카테고리 업데이트
+            get().updateHeaderCategories();
         },
 
         // 분할 모드 설정
         setSplitMode: (mode: SplitMode) => {
+            const currentState = get();
+            const currentMode = currentState.splitMode;
+
             set((state) => {
                 const newState = {
                     ...state,
@@ -514,20 +527,130 @@ export const useTabStore = create<TabStore>((set, get) => {
 
                 return newState;
             });
-            console.log('분할 모드 변경:', mode);
+
+            // 분할 모드 변경에 따른 탭 자동 이동 처리
+            if (currentMode !== mode) {
+                get().handleSplitModeChange(currentMode, mode);
+            }
+
+            // 헤더 카테고리 업데이트
+            get().updateHeaderCategories();
+
+            console.log('분할 모드 변경:', currentMode, '→', mode);
+        },
+
+        // 분할 모드 변경 시 탭 자동 이동 처리
+        handleSplitModeChange: (fromMode: SplitMode, toMode: SplitMode) => {
+            const { tabAreas, activeTabsByArea } = get();
+
+            // single → double: left 영역의 탭 일부를 right로 이동
+            if (fromMode === 'single' && toMode === 'double') {
+                const leftTabs = tabAreas.left;
+                if (leftTabs.length > 1) {
+                    // 마지막 탭을 right로 이동
+                    const lastTab = leftTabs[leftTabs.length - 1];
+                    get().moveTab(lastTab.id, 'left', 'right');
+                    console.log('single → double: 마지막 탭을 right로 이동');
+                }
+            }
+
+            // double → triple: right 영역의 탭 일부를 center로 이동
+            else if (fromMode === 'double' && toMode === 'triple') {
+                const rightTabs = tabAreas.right;
+                if (rightTabs.length > 0) {
+                    // 첫 번째 탭을 center로 이동
+                    const firstTab = rightTabs[0];
+                    get().moveTab(firstTab.id, 'right', 'center');
+                    console.log('double → triple: right의 첫 번째 탭을 center로 이동');
+                } else {
+                    // right에 탭이 없으면 left에서 이동
+                    const leftTabs = tabAreas.left;
+                    if (leftTabs.length > 1) {
+                        const lastTab = leftTabs[leftTabs.length - 1];
+                        get().moveTab(lastTab.id, 'left', 'center');
+                        console.log('double → triple: left의 마지막 탭을 center로 이동');
+                    }
+                }
+            }
+
+            // single → triple: left 영역의 탭들을 center, right로 분산
+            else if (fromMode === 'single' && toMode === 'triple') {
+                const leftTabs = tabAreas.left;
+                if (leftTabs.length > 2) {
+                    // 마지막 두 탭을 center, right로 이동
+                    const lastTab = leftTabs[leftTabs.length - 1];
+                    const secondLastTab = leftTabs[leftTabs.length - 2];
+
+                    get().moveTab(secondLastTab.id, 'left', 'center');
+                    get().moveTab(lastTab.id, 'left', 'right');
+                    console.log('single → triple: 마지막 두 탭을 center, right로 이동');
+                } else if (leftTabs.length === 2) {
+                    // 마지막 탭만 center로 이동
+                    const lastTab = leftTabs[leftTabs.length - 1];
+                    get().moveTab(lastTab.id, 'left', 'center');
+                    console.log('single → triple: 마지막 탭을 center로 이동');
+                }
+            }
+
+            // triple → double: center 영역의 탭들을 left나 right로 병합
+            else if (fromMode === 'triple' && toMode === 'double') {
+                const centerTabs = tabAreas.center;
+                centerTabs.forEach(tab => {
+                    // center의 모든 탭을 right로 이동
+                    get().moveTab(tab.id, 'center', 'right');
+                });
+                if (centerTabs.length > 0) {
+                    console.log('triple → double: center의 모든 탭을 right로 이동');
+                }
+            }
+
+            // double → single: right 영역의 탭들을 left로 병합
+            else if (fromMode === 'double' && toMode === 'single') {
+                const rightTabs = tabAreas.right;
+                rightTabs.forEach(tab => {
+                    // right의 모든 탭을 left로 이동
+                    get().moveTab(tab.id, 'right', 'left');
+                });
+                if (rightTabs.length > 0) {
+                    console.log('double → single: right의 모든 탭을 left로 이동');
+                }
+            }
+
+            // triple → single: center, right 영역의 탭들을 left로 병합
+            else if (fromMode === 'triple' && toMode === 'single') {
+                const centerTabs = tabAreas.center;
+                const rightTabs = tabAreas.right;
+
+                // center의 모든 탭을 left로 이동
+                centerTabs.forEach(tab => {
+                    get().moveTab(tab.id, 'center', 'left');
+                });
+
+                // right의 모든 탭을 left로 이동
+                rightTabs.forEach(tab => {
+                    get().moveTab(tab.id, 'right', 'left');
+                });
+
+                if (centerTabs.length > 0 || rightTabs.length > 0) {
+                    console.log('triple → single: center, right의 모든 탭을 left로 이동');
+                }
+            }
         },
 
         // 헤더 카테고리 상태 업데이트
         updateHeaderCategories: () => {
-            const allTabs = get().getAllTabs();
+            const { activeTabsByArea } = get();
             const activeCategories = new Set<string>();
 
-            // 모든 탭의 메뉴 번호로 최상위 카테고리 찾기
-            allTabs.forEach(tab => {
-                if (tab.menuNo) {
-                    const topMenu = findTopByMenuNo(tab.menuNo);
-                    if (topMenu) {
-                        activeCategories.add(topMenu.menuNo);
+            // 각 영역의 활성 탭만 기준으로 최상위 카테고리 찾기
+            Object.values(activeTabsByArea).forEach(activeTabId => {
+                if (activeTabId) {
+                    const tabInfo = get().findTabById(activeTabId);
+                    if (tabInfo && tabInfo.tab.menuNo) {
+                        const topMenu = findTopByMenuNo(tabInfo.tab.menuNo);
+                        if (topMenu) {
+                            activeCategories.add(topMenu.menuNo);
+                        }
                     }
                 }
             });
@@ -537,7 +660,7 @@ export const useTabStore = create<TabStore>((set, get) => {
                 activeHeaderCategories: activeCategories
             }));
 
-            console.log('헤더 카테고리 업데이트:', Array.from(activeCategories));
+            console.log('헤더 카테고리 업데이트 (활성탭만):', Array.from(activeCategories));
         },
 
         // 특정 영역의 탭들 반환

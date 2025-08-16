@@ -311,12 +311,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const areaTabs = getTabsForArea(area);
 
         if (areaTabs.length === 0) {
-            const areaNames = {
-                left: splitMode === 'single' ? '헤더 메뉴를 클릭하여 탭을 추가하세요' : 'Left 영역에 탭을 드래그하세요',
-                center: 'Center 영역에 탭을 드래그하세요',
-                right: 'Right 영역에 탭을 드래그하세요'
-            };
-            return <div className="p-8 text-gray-400 text-center">{areaNames[area]}</div>;
+            return (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                        <div className="text-lg mb-2">탭이 없습니다</div>
+                        <div className="text-sm">여기로 탭을 드래그하세요</div>
+                    </div>
+                </div>
+            );
         }
 
         // 활성 탭이 없으면 첫 번째 탭을 기본으로 표시

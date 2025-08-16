@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
@@ -23,7 +24,22 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const { splitMode, setSplitMode, activeHeaderCategories, addTab } = useTabStore();
+    const { splitMode, setSplitMode, activeHeaderCategories, addTab, updateHeaderCategories } = useTabStore();
+
+    // 실시간으로 헤더 카테고리 상태를 감지하기 위한 구독
+    React.useEffect(() => {
+        // 컴포넌트 마운트 시 헤더 카테고리 업데이트
+        updateHeaderCategories();
+
+        // 스토어 상태 변화 감지를 위한 구독
+        const unsubscribe = useTabStore.subscribe(() => {
+            // 상태 변화가 있을 때마다 헤더 카테고리 업데이트
+            console.log('탭 상태 변화 감지, 헤더 카테고리 업데이트');
+            updateHeaderCategories();
+        });
+
+        return unsubscribe;
+    }, [updateHeaderCategories]);
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정
