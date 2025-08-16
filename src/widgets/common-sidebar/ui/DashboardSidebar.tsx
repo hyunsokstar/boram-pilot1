@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { NAV_OPEN_TOP_EVENT, type NavOpenTopDetail } from "@/shared/config/common-nav-menus";
 import { sideMenus, type SideMenuItem as SideMenu } from "@/shared/config/common-nav-menus";
 import { useNavStore } from "@/shared/store/navStore";
+import { useTabStore } from "@/widgets/dashboard-tab-bar/model/tabStore";
+import { resolveViewByHref } from "@/widgets/dashboard-views";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import SidebarMenuItem from "./SidebarMenuItem";
 
@@ -19,6 +21,9 @@ export default function DashboardSidebar() {
     const toggle = useNavStore((s) => s.toggle);
     const openTop = useNavStore((s) => s.openTop);
     const setFromPath = useNavStore((s) => s.setFromPath);
+
+    // 탭 스토어
+    const addTab = useTabStore((s) => s.addTab);
 
     // UI 상태
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -56,10 +61,20 @@ export default function DashboardSidebar() {
             // 하위 메뉴가 있으면 토글만
             toggle(menu.menuNo);
         } else if (menu.menuHref && menu.menuHref.trim()) {
-            // 하위 메뉴가 없고 href가 있으면 페이지 이동
+            // 하위 메뉴가 없고 href가 있으면 탭 등록 후 페이지 이동
+            const View = resolveViewByHref(menu.menuHref) || undefined;
+            addTab({
+                id: menu.menuNo,
+                label: menu.menuNm,
+                href: menu.menuHref,
+                menuNo: menu.menuNo,
+                isClosable: true,
+                view: View
+            });
+            
             router.push(menu.menuHref);
         }
-    }, [toggle, router]);
+    }, [toggle, router, addTab]);
 
     // 현재 활성 메뉴인지 정확히 판단
     const isActiveMenu = useCallback((menu: SideMenu): boolean => {

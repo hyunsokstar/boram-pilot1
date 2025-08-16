@@ -209,6 +209,7 @@
 
 import { create } from 'zustand';
 import { DynamicTab, TabArea, TabAreas, SplitMode } from './types';
+import { findTopByMenuNo } from '@/shared/config/common-nav-menus';
 
 // localStorage 유틸리티 함수들
 const STORAGE_KEY = 'dashboard-tab-store';
@@ -251,6 +252,7 @@ interface TabStore {
     activeTabId: string | null;
     activeTabsByArea: Record<TabArea, string | null>;
     splitMode: SplitMode;
+    activeHeaderCategories: Set<string>; // 현재 활성화된 헤더 카테고리들
 
     // 액션들
     addTab: (tab: DynamicTab, targetArea?: TabArea) => void;
@@ -261,6 +263,7 @@ interface TabStore {
     setActiveTabByArea: (area: TabArea, tabId: string | null) => void;
     clearAllTabs: () => void;
     setSplitMode: (mode: SplitMode) => void;
+    updateHeaderCategories: () => void; // 헤더 카테고리 상태 업데이트
 
     // 헬퍼 함수들
     getTabsForArea: (area: TabArea) => DynamicTab[];
@@ -284,6 +287,7 @@ export const useTabStore = create<TabStore>((set, get) => {
             right: null
         },
         splitMode: 'single' as SplitMode,
+        activeHeaderCategories: new Set<string>(),
 
         // 탭 추가 (기본적으로 left 영역에)
         addTab: (tab, targetArea = 'left') => {
@@ -334,8 +338,9 @@ export const useTabStore = create<TabStore>((set, get) => {
                 return newState;
             });
 
-            // 해당 영역의 활성 탭으로 설정
+            // 해당 영역의 활성 탭으로 설정 및 헤더 카테고리 업데이트
             get().setActiveTabByArea(targetArea, tab.id);
+            get().updateHeaderCategories();
 
             console.log(`새 탭 추가: ${tab.label} → ${targetArea} 영역`);
         },
@@ -374,6 +379,9 @@ export const useTabStore = create<TabStore>((set, get) => {
 
                 return newState;
             });
+
+            // 헤더 카테고리 업데이트
+            get().updateHeaderCategories();
 
             console.log(`탭 제거: ${tabInfo.tab.label} from ${area}`);
         },    // 탭 이동 (다른 영역으로)
@@ -509,6 +517,29 @@ export const useTabStore = create<TabStore>((set, get) => {
             console.log('분할 모드 변경:', mode);
         },
 
+        // 헤더 카테고리 상태 업데이트
+        updateHeaderCategories: () => {
+            const allTabs = get().getAllTabs();
+            const activeCategories = new Set<string>();
+
+            // 모든 탭의 메뉴 번호로 최상위 카테고리 찾기
+            allTabs.forEach(tab => {
+                if (tab.menuNo) {
+                    const topMenu = findTopByMenuNo(tab.menuNo);
+                    if (topMenu) {
+                        activeCategories.add(topMenu.menuNo);
+                    }
+                }
+            });
+
+            set(state => ({
+                ...state,
+                activeHeaderCategories: activeCategories
+            }));
+
+            console.log('헤더 카테고리 업데이트:', Array.from(activeCategories));
+        },
+
         // 특정 영역의 탭들 반환
         getTabsForArea: (area) => {
             return get().tabAreas[area];
@@ -605,6 +636,9 @@ export const restoreFromLocalStorage = () => {
         }
 
         useTabStore.setState(restoredState);
+
+        // 복원 후 헤더 카테고리 업데이트
+        useTabStore.getState().updateHeaderCategories();
 
         console.log('localStorage에서 상태 복원됨:', restoredState);
     }

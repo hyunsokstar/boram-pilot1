@@ -23,34 +23,7 @@ export default function DashboardHeader() {
     const pathname = usePathname();
     const setFilteredTop = useNavStore((s) => s.setFilteredTop);
     const { user, logout } = useAuthStore();
-    const { addTab, getAllTabs, getAllActiveTabIds, splitMode, setSplitMode } = useTabStore();
-
-    // 현재 경로 기반 활성 메뉴 - 기본 선택 없음
-    const currentActiveMenuNo = null;
-
-    // Zustand에서 모든 탭과 활성 탭 정보 가져오기
-    const allTabs = getAllTabs();
-    const { activeTabsByArea, splitMode: currentSplitMode } = useTabStore();
-
-    // 모든 등록된 탭의 메뉴 번호들
-    const allRegisteredMenuNos = allTabs
-        .filter(tab => tab.menuNo)
-        .map(tab => tab.menuNo);
-
-    // 현재 활성 탭들의 메뉴 번호들 (영역별)
-    const currentActiveMenuNos = Object.values(activeTabsByArea)
-        .filter(tabId => tabId !== null)
-        .map(tabId => allTabs.find(tab => tab.id === tabId))
-        .filter(tab => tab && tab.menuNo)
-        .map(tab => tab!.menuNo);
-
-    console.log('Header 활성 탭 계산:', {
-        allRegisteredMenuNos,
-        currentActiveMenuNos,
-        activeTabsByArea,
-        tabsCount: allTabs.length,
-        allTabs: allTabs.map(t => ({ id: t.id, label: t.label, menuNo: t.menuNo }))
-    });
+    const { splitMode, setSplitMode, activeHeaderCategories } = useTabStore();
 
     const onHeaderClick = (menuNo: string, href: string) => {
         // 사이드바 필터링 설정
@@ -61,25 +34,7 @@ export default function DashboardHeader() {
             window.dispatchEvent(new CustomEvent(NAV_OPEN_TOP_EVENT, { detail: { menuNo } }));
         }
 
-        // 탭 추가 (Zustand 스토어 사용)
-        const headerMenu = headerMenus.find(menu => menu.menuNo === menuNo);
-        if (headerMenu) {
-            const View = resolveViewByHref(headerMenu.href || undefined) || undefined;
-            addTab({
-                id: headerMenu.menuNo,
-                label: headerMenu.label,
-                href: headerMenu.href,
-                menuNo: headerMenu.menuNo,
-                isClosable: true,
-                // 스플릿 렌더링 단순화를 위해 뷰를 탭에 포함
-                view: View
-            });
-        }
-
-        // href가 있으면 페이지 이동
-        if (href && href.trim() !== "") {
-            router.push(href);
-        }
+        // 헤더는 필터링만 담당, 탭 등록은 사이드바에서 처리
     };
 
     const handleLogout = async () => {
@@ -119,32 +74,29 @@ export default function DashboardHeader() {
                 {/* 메뉴 영역 */}
                 <div className="flex items-center gap-1">
                     {headerMenus.map((m) => {
-                        // 탭에 등록된 메뉴인지 확인 (모든 영역 포함)
-                        const isRegisteredInTabs = allRegisteredMenuNos.includes(m.menuNo);
-                        // 현재 활성 탭인지 확인 (점 표시용)
-                        const isCurrentActiveTab = currentActiveMenuNos.includes(m.menuNo);
+                        // 탭 스토어에서 활성 헤더 카테고리인지 확인
+                        const isActiveCategory = activeHeaderCategories.has(m.menuNo);
 
                         // 디버깅용 로그
-                        if (isRegisteredInTabs || isCurrentActiveTab) {
-                            console.log(`Menu ${m.menuNo} status:`, {
-                                isRegisteredInTabs,
-                                isCurrentActiveTab,
-                                allRegisteredMenuNos,
-                                currentActiveMenuNos
+                        if (isActiveCategory) {
+                            console.log(`헤더 메뉴 활성화: ${m.label}`, {
+                                menuNo: m.menuNo,
+                                isActiveCategory,
+                                activeHeaderCategories: Array.from(activeHeaderCategories)
                             });
                         }
                         return (
                             <button
                                 key={m.menuNo}
                                 onClick={() => onHeaderClick(m.menuNo, m.href)}
-                                className={`group relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-medium transition-all duration-200 min-w-[80px] ${isRegisteredInTabs
+                                className={`group relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-medium transition-all duration-200 min-w-[80px] ${isActiveCategory
                                     ? "bg-blue-50 text-blue-700 border-2 border-dashed border-blue-300"
                                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 border-2 border-transparent"
                                     }`}
                                 title={m.label}
                             >
                                 {/* 아이콘 컨테이너 */}
-                                <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${isRegisteredInTabs
+                                <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${isActiveCategory
                                     ? "bg-blue-100"
                                     : "bg-gray-100 group-hover:bg-gray-200"
                                     }`}>
@@ -154,14 +106,14 @@ export default function DashboardHeader() {
                                             alt={`${m.label} 아이콘`}
                                             width={20}
                                             height={20}
-                                            className={`transition-opacity ${isRegisteredInTabs ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
+                                            className={`transition-opacity ${isActiveCategory ? "opacity-100" : "opacity-70 group-hover:opacity-90"}`}
                                         />
                                     ) : (
-                                        <div className={`w-5 h-5 rounded-sm ${isRegisteredInTabs ? "bg-blue-400" : "bg-gray-400"}`} />
+                                        <div className={`w-5 h-5 rounded-sm ${isActiveCategory ? "bg-blue-400" : "bg-gray-400"}`} />
                                     )}
 
-                                    {/* 활성 탭 표시 점 */}
-                                    {isCurrentActiveTab && (
+                                    {/* 활성 상태 표시 점 */}
+                                    {isActiveCategory && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
                                     )}
                                 </div>
@@ -170,7 +122,7 @@ export default function DashboardHeader() {
                                 <span className="font-medium text-center leading-tight">{m.label}</span>
 
                                 {/* 호버 효과 */}
-                                <div className={`absolute inset-0 rounded-xl transition-opacity ${isRegisteredInTabs ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
+                                <div className={`absolute inset-0 rounded-xl transition-opacity ${isActiveCategory ? "opacity-0" : "opacity-0 group-hover:opacity-5 group-hover:bg-gray-900"
                                     }`} />
                             </button>
                         );

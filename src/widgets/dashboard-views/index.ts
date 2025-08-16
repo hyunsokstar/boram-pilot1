@@ -51,3 +51,17 @@ export const views: ViewMap = {
   "system/user": SystemUserView,
   "system/user-permission": SystemUserPermissionView,
 };
+
+/**
+ * href를 기반으로 해당하는 View 컴포넌트를 찾아 반환합니다.
+ * @param href - 페이지 href (예: "/dashboard/member", "/dashboard/system/common-code")
+ * @returns 해당하는 컴포넌트 또는 undefined
+ */
+export function resolveViewByHref(href?: string): ComponentType | undefined {
+  if (!href) return undefined;
+  
+  // "/dashboard/" 제거하고 양쪽 슬래시 정리
+  const path = href.replace(/^\/dashboard\//, "").replace(/^\/+|\/+$/g, "");
+  
+  return views[path];
+}

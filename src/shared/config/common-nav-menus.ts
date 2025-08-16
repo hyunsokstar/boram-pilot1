@@ -277,6 +277,42 @@ export const findTopByPath = (path: string): SideMenuItem | undefined => {
   return sideMenus.find(contains);
 };
 
+// 메뉴 번호로 최상위 메뉴 찾기
+export const findTopByMenuNo = (menuNo: string): SideMenuItem | undefined => {
+  const findInMenu = (menu: SideMenuItem): SideMenuItem | undefined => {
+    if (menu.menuNo === menuNo) {
+      // 최상위 메뉴 찾기
+      return sideMenus.find(topMenu =>
+        topMenu.menuNo === menuNo ||
+        isDescendantOf(topMenu, menuNo)
+      );
+    }
+    if (menu.subMenu) {
+      for (const subMenu of menu.subMenu) {
+        const result = findInMenu(subMenu);
+        if (result) return result;
+      }
+    }
+    return undefined;
+  };
+
+  for (const topMenu of sideMenus) {
+    const result = findInMenu(topMenu);
+    if (result) return result;
+  }
+  return undefined;
+};
+
+// 특정 메뉴가 최상위 메뉴의 하위인지 확인
+const isDescendantOf = (topMenu: SideMenuItem, targetMenuNo: string): boolean => {
+  const checkDescendant = (menu: SideMenuItem): boolean => {
+    if (menu.menuNo === targetMenuNo) return true;
+    return menu.subMenu?.some(checkDescendant) ?? false;
+  };
+
+  return checkDescendant(topMenu);
+};
+
 // 헤더 메뉴(아이콘 포함) - 모든 최상위 메뉴는 첫 번째 하위 페이지로 이동
 export const headerMenus: HeaderMenuItem[] = sideMenus
   .filter(m => m.menuLevelCd === "1")
