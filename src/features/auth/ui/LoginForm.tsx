@@ -9,8 +9,8 @@ interface LoginFormProps {
 
 export default function LoginForm({ className = "" }: LoginFormProps) {
     const router = useRouter();
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("admin");
+    const [password, setPassword] = useState("test123");
     const [showPassword, setShowPassword] = useState(false);
     const { login, isLoading, error, clearError } = useLogin();
 
