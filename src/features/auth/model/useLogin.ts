@@ -28,7 +28,7 @@ export const useLogin = () => {
 
             console.log('로그인 성공 (프론트엔드 전용)');
             return { success: true, user };
-        } catch (err: unknown) {
+        } catch {
             const errorMessage = '로그인 중 오류가 발생했습니다.';
             setError(errorMessage);
             console.error('로그인 실패:', errorMessage);
