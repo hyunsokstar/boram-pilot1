@@ -3,12 +3,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LoginForm } from "@/features/auth";
 import { useAuthStore } from "@/shared/store";
-import { useSession } from "next-auth/react";
 
 export default function Login() {
   const router = useRouter();
   const { isAuthenticated, initializeAuth, isLoading } = useAuthStore();
-  const { status } = useSession();
 
   useEffect(() => {
     // 앱 시작시 인증 정보 초기화
@@ -16,14 +14,14 @@ export default function Login() {
   }, [initializeAuth]);
 
   useEffect(() => {
-    // Zustand 또는 NextAuth 중 하나라도 인증되면 대시보드로 이동
-    if ((!isLoading && isAuthenticated) || status === 'authenticated') {
+    // Zustand가 인증되면 대시보드로 이동
+    if (!isLoading && isAuthenticated) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, isLoading, status, router]);
+  }, [isAuthenticated, isLoading, router]);
 
   // 로딩 중일 때 표시
-  if (isLoading || status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
@@ -35,7 +33,7 @@ export default function Login() {
   }
 
   // 인증되지 않은 경우에만 로그인 폼 표시
-  if (!isAuthenticated && status !== 'authenticated') {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         {/* 배경 패턴 */}

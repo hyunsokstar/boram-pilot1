@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import Image from "next/image";
 import { headerMenus, NAV_OPEN_TOP_EVENT } from "@/shared/config/header-menus";
 import { resolveViewByHref } from "@/widgets/dashboard-views";
@@ -64,21 +63,11 @@ export default function DashboardHeader() {
     };
 
     const handleLogout = async () => {
-        try {
-            // NextAuth 세션 종료
-            await signOut({ redirect: false });
-
-            // Zustand 상태 초기화
-            logout();
-
-            // 로그인 페이지로 이동
-            router.push('/');
-        } catch (error) {
-            console.error('로그아웃 중 오류 발생:', error);
-            // 오류가 발생해도 로컬 상태는 초기화하고 로그인 페이지로 이동
-            logout();
-            router.push('/');
-        }
+        // Zustand 상태 초기화
+        logout();
+        
+        // 로그인 페이지로 이동
+        router.push('/');
     };
 
     return (

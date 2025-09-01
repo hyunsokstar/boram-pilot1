@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../api/types';
-import { getAuthToken, getUserInfo } from '../api/auth';
 
 interface AuthState {
     user: User | null;
@@ -53,26 +52,14 @@ export const useAuthStore = create<AuthState>()(
             setLoading: (loading: boolean) =>
                 set({ isLoading: loading }),
 
-            // 앱 시작시 localStorage에서 인증 정보 복원
+            // 앱 시작시 로그인 상태로 초기화 (백엔드 연동 없음)
             initializeAuth: () => {
-                const token = getAuthToken();
-                const user = getUserInfo();
-
-                if (token && user) {
-                    set({
-                        user,
-                        token,
-                        isAuthenticated: true,
-                        isLoading: false
-                    });
-                } else {
-                    set({
-                        user: null,
-                        token: null,
-                        isAuthenticated: false,
-                        isLoading: false
-                    });
-                }
+                set({
+                    user: null,
+                    token: null,
+                    isAuthenticated: false,
+                    isLoading: false
+                });
             },
         }),
         {

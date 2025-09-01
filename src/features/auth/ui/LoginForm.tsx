@@ -2,7 +2,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useLogin } from "@/features/auth/model";
-import { signIn } from "next-auth/react";
 
 interface LoginFormProps {
     className?: string;
@@ -31,7 +30,8 @@ export default function LoginForm({ className = "" }: LoginFormProps) {
     };
 
     const handleGoogleSignIn = async () => {
-        await signIn("google", { callbackUrl: "/dashboard" });
+        // 구글 로그인도 그냥 넘어가도록 수정
+        router.push("/dashboard");
     };
 
     return (
