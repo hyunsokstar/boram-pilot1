@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { resolveViewByHref } from "@/widgets/dashboard-views/registry";
+import { resolveViewByHref } from "@/widgets/dashboard-views";
 import {
     DndContext,
     closestCenter,

@@ -5,7 +5,7 @@ interface DashboardViewRendererProps {
   viewKey: string;
 }
 
-export function DashboardViewRenderer({ viewKey }: DashboardViewRendererProps) {
+export default function DashboardViewRenderer({ viewKey }: DashboardViewRendererProps) {
   const Comp = views[viewKey];
   
   if (Comp) {

@@ -1,5 +1,5 @@
 "use client";
-import { DashboardViewRenderer } from "@/components/DashboardViewRenderer";
+import DashboardViewRenderer from "@/components/DashboardViewRenderer";
 import { use } from "react";
 
 type Params = { slug?: string[] };
